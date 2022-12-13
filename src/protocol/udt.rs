@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use log::debug;
 use std::{
     fs::read_to_string,
-    net::{Ipv4Addr, ToSocketAddrs},
+    net::{Ipv6Addr, ToSocketAddrs},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
     time::Duration,
@@ -28,7 +28,7 @@ pub enum UdtError {
     Accept(#[source] std::io::Error),
 
     #[error("")]
-    IO(#[source] std::io::Error),
+    Connect(#[source] std::io::Error),
 
     #[error("")]
     A,
@@ -99,8 +99,14 @@ impl UdtSender for Sender {
         debug!("running udt_send_file...");
         let port = self.get_port();
         let target = self.get_target();
+        let information_for_connect = (self.get_target(), self.get_port());
 
-        let mut connection = UdtConnection::connect((target, port), None).await.unwrap();
+        //let mut connection = UdtConnection::connect((target, port), None).await.map_err(|e| Err(UdtError::Connect(e)))?;
+    
+        let mut connection = UdtConnection::connect(information_for_connect, None).await.unwrap_or_else(|e| Err(UdtError::Connect(e)));
+
+        //f.read_to_string(&mut s).map_err(|e| MyCustomError:FileReadError(e))?;
+
         let mut reader = BufReader::new(file);
         debug!("done udt connect");
 
@@ -117,7 +123,7 @@ impl UdtSender for Sender {
         output: P,
     ) -> Result<(), UdtError> {
         let port = self.get_port();
-        let udt_listener = match UdtListener::bind((Ipv4Addr::UNSPECIFIED, port).into(), None).await
+        let udt_listener = match UdtListener::bind((Ipv6Addr::UNSPECIFIED, port).into(), None).await
         {
             Ok(result) => result, // TODO Сделать из этого макрос и как отдельную библиотеку
             Err(error) => return Err(UdtError::Bind(error)),
