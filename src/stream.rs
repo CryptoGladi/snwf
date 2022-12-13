@@ -1,6 +1,9 @@
 use std::io::BufRead;
 
-pub(crate) fn progressing_read(reader: &mut impl BufRead, progress: &mut impl FnMut(usize, &[u8])) -> Result<(), std::io::Error> {
+pub(crate) fn progressing_read(
+    reader: &mut impl BufRead,
+    progress: &mut impl FnMut(usize, &[u8]),
+) -> Result<(), std::io::Error> {
     let mut buffer = vec![0u8; 4096];
 
     loop {

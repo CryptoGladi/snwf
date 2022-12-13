@@ -1,5 +1,5 @@
-use std::net::{IpAddr, ToSocketAddrs};
 use derive_new::new;
+use std::net::{IpAddr, ToSocketAddrs};
 
 pub type DoneBytes = usize;
 
@@ -10,8 +10,7 @@ pub trait CoreSender {
 }
 
 #[derive(new)]
-pub struct Sender
-{
+pub struct Sender {
     target: IpAddr,
     port: u16,
 }
