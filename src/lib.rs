@@ -2,7 +2,6 @@ pub mod prelude;
 pub mod protocol;
 pub mod recipient; // or client
 pub mod sender; // or server
-pub(crate) mod stream;
 
 /// Init logger for **tests**
 #[cfg(test)]

@@ -1,5 +1,5 @@
 use derive_new::new;
-use std::net::{IpAddr, ToSocketAddrs};
+use std::net::IpAddr;
 
 pub type DoneBytes = usize;
 

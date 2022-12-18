@@ -1,10 +1,9 @@
-use crate::{
-    sender::{CoreSender, Sender},
-    stream::progressing_read,
-};
+use crate::protocol::handshake::*;
+use crate::sender::{CoreSender, Sender};
 use async_trait::async_trait;
 use derive_new::new;
 use log::debug;
+use tokio::net::TcpStream;
 use std::{
     fs::read_to_string,
     net::{Ipv6Addr, ToSocketAddrs},
@@ -37,17 +36,81 @@ pub enum UdtError {
     FileIO(#[source] std::io::Error),
 
     #[error("")]
-    ConnectionLost,
+    Handshake(#[from] HandshakeError),
+
+    #[error("")]
+    FileInvalid
 }
 
-#[derive(Debug)]
-pub struct UdtConfig {
+mod detail {
+    use super::*;
+    use digest::Digest;
+    use tokio::net::{TcpListener, TcpStream};
 
+    pub(crate) async fn raw_send_file<HashType, P>(
+        udt: &mut UdtConnection,
+        hash: &mut HashType,
+        path: P,
+        socket: &mut TcpStream,
+    ) -> Result<(), UdtError>
+    where
+        HashType: Digest + Clone + Send,
+        P: AsRef<Path> + Sync + Copy,
+    {
+        send_handshake_from_file(path, hash, socket).await?;
+        let file = File::open(path).await.map_err(UdtError::FileIO)?;
+        let mut reader = BufReader::new(file);
+
+        tokio::io::copy(&mut reader, udt)
+            .await
+            .map_err(UdtError::FileIO)?;
+
+        Ok(())
+    }
+
+    pub(crate) async fn raw_recv_file<HashType, P>(
+        udt: &mut UdtConnection,
+        hash: &mut HashType,
+        socket: &mut TcpListener,
+        path: P,
+    ) -> Result<(), UdtError>
+    where
+        HashType: Digest + Clone + Send,
+        P: AsRef<Path> + Sync + Copy,
+    {
+        // Send file
+        let handshake = recv_handshake_from_address(socket).await?;
+        let mut file = BufWriter::new(
+            OpenOptions::new()
+                .write(true)
+                .create(true)
+                .open(path)
+                .await
+                .map_err(UdtError::FileIO)?,
+        );
+
+        if let Ok(result) = timeout(TIMEOUT, tokio::io::copy(udt, &mut file)).await {
+            result.map_err(UdtError::FileIO)?;
+            return Ok(());
+        };
+        drop(file);
+        
+        // Check file
+        let hash = file_hashing::get_hash_file(path, hash).map_err(UdtError::FileIO)?;
+
+        if hash != handshake.file_hash {
+            return Err(UdtError::FileInvalid);
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
 pub trait UdtSender: CoreSender {
-    async fn udt_send_file(&mut self, file: &mut File) -> Result<(), UdtError>;
+    async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
+    where
+        P: AsRef<Path> + Sync + Copy + Send;
 
     async fn udt_recv_file<P: AsRef<Path> + Send + Copy>(
         &mut self,
@@ -57,35 +120,35 @@ pub trait UdtSender: CoreSender {
 
 #[async_trait]
 impl UdtSender for Sender {
-    async fn udt_send_file(&mut self, file: &mut File) -> Result<(), UdtError> {
-        debug!("Running udt_send_file...");
+    async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
+    where
+        P: AsRef<Path> + Sync + Copy + Send,
+    {
+        let file = File::open(path).await.map_err(UdtError::FileIO)?;
         let info_for_connect = (self.get_target(), self.get_port());
 
-        let mut connection = UdtConnection::connect(info_for_connect, None)
+        let mut udt = UdtConnection::connect(info_for_connect, None)
             .await
             .map_err(UdtError::Connect)?;
-
+        let mut socket_for_handshake = TcpStream::connect("127.0.0.1:4725").await.map_err(UdtError::Accept)?;
         let mut reader = BufReader::new(file);
-        debug!("Done connect in udt");
+        let mut hasher = self.get_hasher().clone();
 
-        // TODO https://stackoverflow.com/questions/71632833/how-to-continuously-watch-and-read-file-asynchronously-in-rust-using-tokio
-        tokio::io::copy(&mut reader, &mut connection)
-            .await
-            .map_err(UdtError::FileIO)?;
+        detail::raw_send_file(&mut udt, &mut hasher, path, &mut socket_for_handshake);
 
-        debug!("Done send file in udt");
-        Ok(())
+        todo!()
     }
 
     async fn udt_recv_file<P: AsRef<Path> + Send + Copy>(
         &mut self,
         output: P,
     ) -> Result<(), UdtError> {
-        let udt_listener = UdtListener::bind((Ipv6Addr::UNSPECIFIED, self.get_port()).into(), None).await.map_err(UdtError::Bind)?;
+        let udt_listener = UdtListener::bind((Ipv6Addr::UNSPECIFIED, self.get_port()).into(), None)
+            .await
+            .map_err(UdtError::Bind)?;
 
         let mut file_for_write = OpenOptions::new()
             .create(true)
-            .read(true)
             .write(true)
             .open(output)
             .await
@@ -94,29 +157,16 @@ impl UdtSender for Sender {
         let (addr, mut connection) = udt_listener.accept().await.map_err(UdtError::Accept)?;
         debug!("Accepted connection from {}", addr);
 
-        if let Ok(copying) = timeout(TIMEOUT, tokio::io::copy(&mut connection, &mut file_for_write)).await {
+        if let Ok(copying) = timeout(
+            TIMEOUT,
+            tokio::io::copy(&mut connection, &mut file_for_write),
+        )
+        .await
+        {
             copying.map_err(UdtError::FileIO)?;
             return Ok(());
         };
         Ok(()) // TODO Подклёчение разовралось или всё файлы успешно доставлены?
-
-        /*
-        loop {
-            match timeout(TIMEOUT, connection.read_buf(&mut buffer)).await {
-                Ok(len) => {
-                    let Ok(len) = len else {
-                        return Err(UdtError::ConnectionLost);
-                    };
-
-                    file_for_write.write_all(&buffer[0..len]).await.unwrap();
-                }
-                Err(_) => {
-                    debug!("Timeout end = end send file");
-                    file_for_write.flush().await.unwrap();
-                    return Ok(());
-                }
-            }
-        } */
     }
 }
 
@@ -128,6 +178,7 @@ mod tests {
     async fn send_and_recv() {
         crate::init_logger_for_test();
 
+        /*
         tokio::spawn(async {
             let mut file = File::open("/home/gladi/test_for_send.txt").await.unwrap();
             let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 5425);
@@ -143,6 +194,7 @@ mod tests {
         })
         .await
         .unwrap();
+        */
 
         println!("DONE");
     }
