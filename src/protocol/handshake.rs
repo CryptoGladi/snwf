@@ -1,4 +1,4 @@
-use digest::Digest;
+use crate::common::{get_hasher, TIMEOUT};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -22,16 +22,15 @@ pub enum HandshakeError {
     IO(#[from] std::io::Error),
 }
 
-pub(crate) async fn send_handshake_from_file<HashType, P>(
+pub(crate) async fn send_handshake_from_file<P>(
     path: P,
-    hash: &mut HashType,
     socket: &mut TcpStream,
 ) -> Result<Handshake, HandshakeError>
 where
-    HashType: Digest + Clone + Send,
     P: AsRef<Path> + Sync,
 {
-    let hash = file_hashing::get_hash_file(path, hash)?;
+    let mut hasher = get_hasher();
+    let hash = file_hashing::get_hash_file(path, &mut hasher)?;
     let handshake = Handshake { file_hash: hash };
 
     let json = serde_json::to_string(&handshake)?;
@@ -56,18 +55,22 @@ pub(crate) async fn recv_handshake_from_address(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use blake2::Digest;
 
-    async fn send<P: AsRef<Path> + Sync>(
-        path_for_send: P,
-        socket: &mut TcpStream,
-    ) -> Result<(), HandshakeError> {
-        let mut hash = blake2::Blake2b512::new();
-        send_handshake_from_file(path_for_send, &mut hash, socket).await?;
-        Ok(())
-    }
+    pub(crate) mod detail {
+        use super::*;
 
-    async fn recv(listener: &mut TcpListener) -> Result<Handshake, HandshakeError> {
-        Ok(recv_handshake_from_address(listener).await?)
+        pub(crate) async fn send<P: AsRef<Path> + Sync>(
+            path_for_send: P,
+            socket: &mut TcpStream,
+        ) -> Result<(), HandshakeError> {
+            send_handshake_from_file(path_for_send, socket).await?;
+            Ok(())
+        }
+
+        pub(crate) async fn recv(listener: &mut TcpListener) -> Result<Handshake, HandshakeError> {
+            Ok(recv_handshake_from_address(listener).await?)
+        }
     }
 
     #[tokio::test]
@@ -83,8 +86,8 @@ mod tests {
         let mut recv_socket = TcpListener::bind(ADDRESS).await.unwrap();
         let mut send_socket = TcpStream::connect(ADDRESS).await.unwrap();
 
-        let recv_future = recv(&mut recv_socket);
-        let send_future = send(path_to_file.path(), &mut send_socket);
+        let recv_future = detail::recv(&mut recv_socket);
+        let send_future = detail::send(path_to_file.path(), &mut send_socket);
 
         let (recv, send) = tokio::join!(send_future, recv_future);
         recv.unwrap();

@@ -1,9 +1,10 @@
+use crate::common::{get_hasher, TIMEOUT};
 use crate::protocol::handshake::*;
 use crate::sender::{CoreSender, Sender};
 use async_trait::async_trait;
+use blake2::{Blake2b512, Digest};
 use derive_new::new;
 use log::debug;
-use tokio::net::TcpStream;
 use std::{
     fs::read_to_string,
     net::{Ipv6Addr, ToSocketAddrs},
@@ -13,13 +14,14 @@ use std::{
 };
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+use tokio::net::TcpStream;
 use tokio::{
     fs::{File, OpenOptions},
     time::timeout,
 };
 use tokio_udt::{UdtConnection, UdtListener};
 
-const TIMEOUT: Duration = Duration::from_millis(1000);
+mod detail;
 
 #[derive(Debug, Error)]
 pub enum UdtError {
@@ -39,71 +41,7 @@ pub enum UdtError {
     Handshake(#[from] HandshakeError),
 
     #[error("")]
-    FileInvalid
-}
-
-mod detail {
-    use super::*;
-    use digest::Digest;
-    use tokio::net::{TcpListener, TcpStream};
-
-    pub(crate) async fn raw_send_file<HashType, P>(
-        udt: &mut UdtConnection,
-        hash: &mut HashType,
-        path: P,
-        socket: &mut TcpStream,
-    ) -> Result<(), UdtError>
-    where
-        HashType: Digest + Clone + Send,
-        P: AsRef<Path> + Sync + Copy,
-    {
-        send_handshake_from_file(path, hash, socket).await?;
-        let file = File::open(path).await.map_err(UdtError::FileIO)?;
-        let mut reader = BufReader::new(file);
-
-        tokio::io::copy(&mut reader, udt)
-            .await
-            .map_err(UdtError::FileIO)?;
-
-        Ok(())
-    }
-
-    pub(crate) async fn raw_recv_file<HashType, P>(
-        udt: &mut UdtConnection,
-        hash: &mut HashType,
-        socket: &mut TcpListener,
-        path: P,
-    ) -> Result<(), UdtError>
-    where
-        HashType: Digest + Clone + Send,
-        P: AsRef<Path> + Sync + Copy,
-    {
-        // Send file
-        let handshake = recv_handshake_from_address(socket).await?;
-        let mut file = BufWriter::new(
-            OpenOptions::new()
-                .write(true)
-                .create(true)
-                .open(path)
-                .await
-                .map_err(UdtError::FileIO)?,
-        );
-
-        if let Ok(result) = timeout(TIMEOUT, tokio::io::copy(udt, &mut file)).await {
-            result.map_err(UdtError::FileIO)?;
-            return Ok(());
-        };
-        drop(file);
-        
-        // Check file
-        let hash = file_hashing::get_hash_file(path, hash).map_err(UdtError::FileIO)?;
-
-        if hash != handshake.file_hash {
-            return Err(UdtError::FileInvalid);
-        }
-
-        Ok(())
-    }
+    FileInvalid,
 }
 
 #[async_trait]
@@ -130,11 +68,12 @@ impl UdtSender for Sender {
         let mut udt = UdtConnection::connect(info_for_connect, None)
             .await
             .map_err(UdtError::Connect)?;
-        let mut socket_for_handshake = TcpStream::connect("127.0.0.1:4725").await.map_err(UdtError::Accept)?;
+        let mut socket_for_handshake = TcpStream::connect("127.0.0.1:4725")
+            .await
+            .map_err(UdtError::Accept)?;
         let mut reader = BufReader::new(file);
-        let mut hasher = self.get_hasher().clone();
 
-        detail::raw_send_file(&mut udt, &mut hasher, path, &mut socket_for_handshake);
+        detail::raw_send_file(&mut udt, path, &mut socket_for_handshake);
 
         todo!()
     }
