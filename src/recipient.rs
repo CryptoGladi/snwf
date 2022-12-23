@@ -9,7 +9,7 @@ pub trait CoreRecipient {
     fn get_port(&self) -> u16;
 }
 
-#[derive(new)]
+#[derive(Debug, new)]
 pub struct Recipient {
     target: IpAddr,
     port: u16,

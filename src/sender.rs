@@ -12,7 +12,7 @@ pub trait CoreSender {
     fn get_port(&self) -> u16;
 }
 
-#[derive(new)]
+#[derive(Debug, new)]
 pub struct Sender {
     target: IpAddr,
     port: u16,

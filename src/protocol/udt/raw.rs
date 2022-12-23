@@ -85,7 +85,7 @@ mod tests {
         pub(crate) async fn async_send(
             address_for_udt: impl ToSocketAddrs,
             address_for_tcp: impl ToSocketAddrs,
-            path_to_file: &Path
+            path_to_file: &Path,
         ) -> Result<(), UdtError> {
             let mut udt = UdtConnection::connect(address_for_udt, None)
                 .await
@@ -120,12 +120,7 @@ mod tests {
             debug!("Accept client: {}", _addr);
 
             debug!("Running raw_recv_file...");
-            recv_file(
-                &mut udt_connection,
-                &mut tcp_listener,
-                output,
-            )
-            .await?;
+            recv_file(&mut udt_connection, &mut tcp_listener, output).await?;
             debug!("Done raw_recv_file!");
 
             Ok(())
@@ -134,6 +129,9 @@ mod tests {
 
     #[tokio::test]
     async fn udt_raw() {
+        crate::init_logger_for_test();
+
+        //println!();
         const ADDRESS_UDT: &'static str = "127.0.0.1:6432";
         const ADDRESS_TCP: &'static str = "127.0.0.1:6424";
 
@@ -142,7 +140,11 @@ mod tests {
         let hash_input = file_hashing::get_hash_file(&input_path, &mut get_hasher()).unwrap();
 
         let (send, recv) = tokio::join!(
-            detail::async_recv(ADDRESS_UDT.parse().unwrap(), ADDRESS_TCP, output_path.as_path()),
+            detail::async_recv(
+                ADDRESS_UDT.parse().unwrap(),
+                ADDRESS_TCP,
+                output_path.as_path()
+            ),
             detail::async_send(ADDRESS_UDT, ADDRESS_TCP, input_path.path())
         );
 
