@@ -21,7 +21,7 @@ use tokio::{
 };
 use tokio_udt::{UdtConnection, UdtListener};
 
-mod detail;
+mod raw;
 
 #[derive(Debug, Error)]
 pub enum UdtError {
@@ -73,7 +73,7 @@ impl UdtSender for Sender {
             .map_err(UdtError::Accept)?;
         let mut reader = BufReader::new(file);
 
-        detail::raw_send_file(&mut udt, path, &mut socket_for_handshake);
+        raw::send_file(&mut udt, path, &mut socket_for_handshake);
 
         todo!()
     }
