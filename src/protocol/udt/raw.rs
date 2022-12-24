@@ -1,6 +1,6 @@
 use super::UdtError;
 use crate::{
-    common::{get_hasher, TIMEOUT},
+    common::{get_hasher, timeout},
     protocol::handshake::{recv_handshake_from_address, send_handshake_from_file},
 };
 use log::debug;
@@ -25,9 +25,7 @@ where
     let file = File::open(path).await.map_err(UdtError::FileIO)?;
     let mut reader = BufReader::new(file);
 
-    tokio::io::copy(&mut reader, udt)
-        .await
-        .map_err(UdtError::FileIO)?;
+    timeout!(tokio::io::copy(&mut reader, udt), |_| UdtError::FileIO)?;
 
     Ok(())
 }
@@ -53,10 +51,7 @@ where
             .map_err(UdtError::FileIO)?,
     );
 
-    if let Ok(result) = timeout(TIMEOUT, tokio::io::copy(udt, &mut file)).await {
-        result.map_err(UdtError::FileIO)?;
-        return Ok(());
-    };
+    timeout!(tokio::io::copy(udt, &mut file), UdtError::FileIO);
     drop(file);
 
     // Check file

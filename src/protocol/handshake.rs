@@ -1,4 +1,4 @@
-use crate::common::{get_hasher, TIMEOUT};
+use crate::common::{get_hasher, timeout, TIMEOUT};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -6,6 +6,7 @@ use thiserror::Error;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, ToSocketAddrs},
+    time::timeout,
 };
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -20,6 +21,9 @@ pub enum HandshakeError {
 
     #[error("IO/socket error")]
     IO(#[from] std::io::Error),
+
+    #[error("timeout expired")]
+    TimeoutExpired,
 }
 
 pub(crate) async fn send_handshake_from_file<P>(
@@ -34,7 +38,7 @@ where
     let handshake = Handshake { file_hash: hash };
 
     let json = serde_json::to_string(&handshake)?;
-    socket.write_all(json.to_string().as_bytes()).await?;
+    timeout!(socket.write_all(json.to_string().as_bytes()), |_| HandshakeError::TimeoutExpired)??;
     debug!("Done socket 'Handshake' send. Handshake: {:?}", json);
 
     Ok(handshake)
@@ -43,11 +47,12 @@ where
 pub(crate) async fn recv_handshake_from_address(
     listener: &mut TcpListener,
 ) -> Result<Handshake, HandshakeError> {
-    let (mut client, addr) = listener.accept().await?;
+    let (mut client, addr) =
+        timeout!(listener.accept(), |_| HandshakeError::TimeoutExpired)??;
     debug!("Client for recv handshake: addr {}", addr);
 
     let mut json = Vec::with_capacity(4096);
-    client.read_buf(&mut json).await?;
+    timeout!(client.read_buf(&mut json), |_| HandshakeError::TimeoutExpired)??;
 
     Ok(serde_json::from_str(&String::from_utf8_lossy(&json[..]))?)
 }
