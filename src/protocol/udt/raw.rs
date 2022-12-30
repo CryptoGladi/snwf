@@ -1,13 +1,13 @@
 use super::UdtError;
 use crate::{
-    common::{get_hasher, timeout},
+    common::{get_hasher, timeout, TIMEOUT},
     protocol::handshake::{recv_handshake_from_address, send_handshake_from_file},
 };
 use log::debug;
 use std::path::Path;
 use tokio::{
     fs::{File, OpenOptions},
-    io::{BufReader, BufWriter},
+    io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
     net::{TcpListener, TcpStream},
     time::timeout,
 };
@@ -25,9 +25,17 @@ where
     let file = File::open(path).await.map_err(UdtError::FileIO)?;
     let mut reader = BufReader::new(file);
 
-    timeout!(tokio::io::copy(&mut reader, udt), |_| UdtError::FileIO)?;
+    let mut buf = vec![0u8; 4096];
+    loop {
+        let len = reader.read(&mut buf).await.map_err(UdtError::FileIO)?;
 
-    Ok(())
+        if len == 0 {
+            return Ok(());
+        }
+
+        timeout!(udt.write_all(&buf[0..len]), |_| UdtError::TimeoutExpired)?
+            .map_err(UdtError::FileIO)?;
+    }
 }
 
 pub(crate) async fn recv_file<P>(
@@ -51,16 +59,31 @@ where
             .map_err(UdtError::FileIO)?,
     );
 
-    timeout!(tokio::io::copy(udt, &mut file), UdtError::FileIO);
-    drop(file);
+    let mut buf = vec![0u8; 4096];
+    loop {
+        // Sending file
+        if let Ok(len) = timeout!(udt.read_buf(&mut buf), |_| UdtError::TimeoutExpired)? { // BUG ТУТ ОШИБКА
+            if len == 0 {
+                break;
+            }
 
-    // Check file
-    debug!("raw_recv_file. Checking file");
-    let mut hasher = get_hasher();
-    let hash = file_hashing::get_hash_file(path, &mut hasher).map_err(UdtError::FileIO)?;
+            file.write_all(&buf[0..len])
+                .await
+                .map_err(UdtError::FileIO)?;
+            file.flush().await.map_err(UdtError::FileIO)?;
+        } else {
+            // End send file?
 
-    if hash != handshake.file_hash {
-        return Err(UdtError::FileInvalid);
+            // Check file
+            debug!("raw_recv_file. Checking file");
+            let mut hasher = get_hasher();
+            let hash = file_hashing::get_hash_file(path, &mut hasher).map_err(UdtError::FileIO)?;
+
+            if hash != handshake.file_hash {
+                debug!("hash not valid! hash: {}; handshake.file_hash: {}", hash, handshake.file_hash);
+                return Err(UdtError::FileInvalid);
+            }
+        }
     }
 
     Ok(())
@@ -134,13 +157,13 @@ mod tests {
         let output_path = temp_dir.join("tess.txt");
         let hash_input = file_hashing::get_hash_file(&input_path, &mut get_hasher()).unwrap();
 
-        let (send, recv) = tokio::join!(
+        let (recv, send) = tokio::join!(
             detail::async_recv(
                 ADDRESS_UDT.parse().unwrap(),
                 ADDRESS_TCP,
-                output_path.as_path()
+                &Path::new("/home/gladi/lllll.txt")
             ),
-            detail::async_send(ADDRESS_UDT, ADDRESS_TCP, input_path.path())
+            detail::async_send(ADDRESS_UDT, ADDRESS_TCP, &Path::new("/home/gladi/test_for_send.txt"))
         );
 
         send.unwrap();

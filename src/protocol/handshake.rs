@@ -38,7 +38,9 @@ where
     let handshake = Handshake { file_hash: hash };
 
     let json = serde_json::to_string(&handshake)?;
-    timeout!(socket.write_all(json.to_string().as_bytes()), |_| HandshakeError::TimeoutExpired)??;
+    timeout!(socket.write_all(json.to_string().as_bytes()), |_| {
+        HandshakeError::TimeoutExpired
+    })??;
     debug!("Done socket 'Handshake' send. Handshake: {:?}", json);
 
     Ok(handshake)
@@ -47,12 +49,13 @@ where
 pub(crate) async fn recv_handshake_from_address(
     listener: &mut TcpListener,
 ) -> Result<Handshake, HandshakeError> {
-    let (mut client, addr) =
-        timeout!(listener.accept(), |_| HandshakeError::TimeoutExpired)??;
+    let (mut client, addr) = timeout!(listener.accept(), |_| HandshakeError::TimeoutExpired)??;
     debug!("Client for recv handshake: addr {}", addr);
 
     let mut json = Vec::with_capacity(4096);
-    timeout!(client.read_buf(&mut json), |_| HandshakeError::TimeoutExpired)??;
+    timeout!(client.read_buf(&mut json), |_| {
+        HandshakeError::TimeoutExpired
+    })??;
 
     Ok(serde_json::from_str(&String::from_utf8_lossy(&json[..]))?)
 }

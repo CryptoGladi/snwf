@@ -43,6 +43,9 @@ pub enum UdtError {
 
     #[error("file invalid. Check network")]
     FileInvalid,
+
+    #[error("timeout expired")]
+    TimeoutExpired,
 }
 
 #[async_trait]
