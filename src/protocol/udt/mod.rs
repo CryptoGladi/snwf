@@ -38,6 +38,9 @@ pub enum UdtError {
     #[error("IO filesystem")]
     FileIO(#[source] std::io::Error),
 
+    #[error("IO network")]
+    NetworkIO(#[source] std::io::Error),
+
     #[error("handshake")]
     Handshake(#[from] HandshakeError),
 
@@ -111,33 +114,28 @@ impl UdtRecipient for Recipient {
 
 #[cfg(test)]
 mod tests {
-    use std::net::{IpAddr, Ipv4Addr};
-
     use super::*;
+    use std::net::{IpAddr, Ipv4Addr};
 
     pub(crate) mod detail {
         use super::*;
         use std::net::IpAddr;
 
         pub(crate) async fn send(
-            target: IpAddr,
-            port: u16,
+            sender: &mut Sender,
             path: &Path,
             tcp_address: impl ToSocketAddrs + Send,
         ) -> Result<(), UdtError> {
-            let mut sender = Sender::new(target, port);
             sender.udt_send_file(path, tcp_address).await?;
 
             Ok(())
         }
 
         pub(crate) async fn recv(
-            target: IpAddr,
-            port: u16,
+            recipient: &mut Recipient,
             output: &Path,
             bind_tcp_addr: impl ToSocketAddrs + Send,
         ) -> Result<(), UdtError> {
-            let mut recipient = Recipient::new(target, port);
             recipient.udt_recv_file(output, bind_tcp_addr).await?;
 
             Ok(())
@@ -145,23 +143,29 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn send_and_recv() {
+    async fn send_and_recv_udt() {
         crate::init_logger_for_test();
         // TODO Сделать везде timeout
 
-        const TARGET: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
-        const PORT: u16 = 5824;
-        const BIND_TCP_ADDRESS: &'static str = "";
-        const TCP_ADDRESS: &'static str = "";
-
         let (temp_dir, path_input) = file_hashing::fs::extra::generate_random_file(4352);
         let path_output = temp_dir.join("tess_file.txt");
+        let mut sender = Sender::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 43652);
+        let mut recipient = Recipient::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 43642);
 
+        /*
         let (send, recv) = tokio::join!(
-            detail::send(TARGET, PORT, path_input.path(), TCP_ADDRESS),
-            detail::recv(TARGET, PORT, path_output.as_path(), BIND_TCP_ADDRESS)
+            detail::send(&mut sender, path_input.path(), TCP_ADDRESS),
+            detail::recv(&mut recipient, path_output.as_path(), BIND_TCP_ADDRESS)
         );
         send.unwrap();
         recv.unwrap();
+        */
+
+        //let (send, recv) = tokio::join!(
+        //    sender.udt_send_file(path_input.path(), "127.0.0.1:4533"),
+        //    recipient.udt_recv_file(path_output.as_path(), "127.0.0.1:4533")
+        //);
+        //send.unwrap();
+        //recv.unwrap();
     }
 }

@@ -33,7 +33,7 @@ where
             return Ok(());
         }
 
-        timeout!(udt.write_all(&buf[0..len]), |_| UdtError::TimeoutExpired)?
+        timeout!(udt.send(&buf[0..len]), |_| UdtError::TimeoutExpired)?
             .map_err(UdtError::FileIO)?;
     }
 }
@@ -60,12 +60,44 @@ where
     );
 
     let mut buf = vec![0u8; 4096];
+    let mut total_bytes_for_send = handshake.size;
+
+    loop {
+        let len = udt.recv(&mut buf).await.map_err(UdtError::NetworkIO)?;
+
+        file.write_all(&buf[0..len])
+            .await
+            .map_err(UdtError::FileIO)?;
+
+        total_bytes_for_send -= len as u64;
+        if total_bytes_for_send == 0 {
+            break;
+        }
+    }
+    file.flush().await.map_err(UdtError::FileIO)?;
+
+    // Check file
+    debug!("raw_recv_file. Checking file");
+    let mut hasher = get_hasher();
+    let hash = file_hashing::get_hash_file(path, &mut hasher).map_err(UdtError::FileIO)?;
+
+    if hash != handshake.hash {
+        debug!(
+            "hash not valid! hash: {}; handshake.file_hash: {}",
+            hash, handshake.hash
+        );
+        return Err(UdtError::FileInvalid);
+    }
+
+    Ok(())
+    /*
     loop {
         // Sending file
-        if let Ok(len) = timeout!(udt.read_buf(&mut buf), |_| UdtError::TimeoutExpired)? { // BUG ТУТ ОШИБКА
-            if len == 0 {
-                break;
-            }
+        if let Ok(len) = timeout!(udt.recv(&mut buf), |_| UdtError::TimeoutExpired) { // BUG ТУТ ОШИБКА
+            let len = len.map_err(UdtError::FileIO)?;
+
+            debug!("len: {}", len);
+            debug!("buf: {}", String::from_utf8(buf[0..len].to_vec()).unwrap());
 
             file.write_all(&buf[0..len])
                 .await
@@ -79,14 +111,39 @@ where
             let mut hasher = get_hasher();
             let hash = file_hashing::get_hash_file(path, &mut hasher).map_err(UdtError::FileIO)?;
 
-            if hash != handshake.file_hash {
-                debug!("hash not valid! hash: {}; handshake.file_hash: {}", hash, handshake.file_hash);
+            if hash != handshake.hash {
+                debug!("hash not valid! hash: {}; handshake.file_hash: {}", hash, handshake.hash);
                 return Err(UdtError::FileInvalid);
             }
+
+            return Ok(());
         }
+    }*/
+
+    /*
+    let mut buffer = vec![0u8; 40096];
+    match udt.recv(&mut buffer).await {
+        Ok(_size) => {
+            debug!("buf: {}", String::from_utf8_lossy(&buffer[..]));
+            file.write(&buffer[0.._size]).await.unwrap();
+        }
+        Err(e) => {
+            panic!("Connnection with failed: {}", e);
+        }
+    }
+    file.flush().await.unwrap();
+
+    debug!("raw_recv_file. Checking file");
+    let mut hasher = get_hasher();
+    let hash = file_hashing::get_hash_file(path, &mut hasher).map_err(UdtError::FileIO)?;
+
+    if hash != handshake.file_hash {
+        debug!("hash not valid! hash: {}; handshake.file_hash: {}", hash, handshake.file_hash);
+        return Err(UdtError::FileInvalid);
     }
 
     Ok(())
+    */
 }
 
 #[cfg(test)]
@@ -149,21 +206,20 @@ mod tests {
     async fn udt_raw() {
         crate::init_logger_for_test();
 
-        //println!();
         const ADDRESS_UDT: &'static str = "127.0.0.1:6432";
         const ADDRESS_TCP: &'static str = "127.0.0.1:6424";
 
         let (temp_dir, input_path) = file_hashing::fs::extra::generate_random_file(3626);
         let output_path = temp_dir.join("tess.txt");
-        let hash_input = file_hashing::get_hash_file(&input_path, &mut get_hasher()).unwrap();
+        let hash_input = file_hashing::get_hash_file(input_path.path(), &mut get_hasher()).unwrap();
 
         let (recv, send) = tokio::join!(
             detail::async_recv(
                 ADDRESS_UDT.parse().unwrap(),
                 ADDRESS_TCP,
-                &Path::new("/home/gladi/lllll.txt")
+                output_path.as_path()
             ),
-            detail::async_send(ADDRESS_UDT, ADDRESS_TCP, &Path::new("/home/gladi/test_for_send.txt"))
+            detail::async_send(ADDRESS_UDT, ADDRESS_TCP, &input_path.path())
         );
 
         send.unwrap();

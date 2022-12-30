@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use thiserror::Error;
 use tokio::{
+    fs::metadata,
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, ToSocketAddrs},
     time::timeout,
@@ -11,7 +12,8 @@ use tokio::{
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct Handshake {
-    pub file_hash: String,
+    pub hash: String,
+    pub size: u64,
 }
 
 #[derive(Debug, Error)]
@@ -31,11 +33,12 @@ pub(crate) async fn send_handshake_from_file<P>(
     socket: &mut TcpStream,
 ) -> Result<Handshake, HandshakeError>
 where
-    P: AsRef<Path> + Sync,
+    P: AsRef<Path> + Sync + Copy,
 {
     let mut hasher = get_hasher();
     let hash = file_hashing::get_hash_file(path, &mut hasher)?;
-    let handshake = Handshake { file_hash: hash };
+    let size = metadata(path).await?.len();
+    let handshake = Handshake { hash, size };
 
     let json = serde_json::to_string(&handshake)?;
     timeout!(socket.write_all(json.to_string().as_bytes()), |_| {
@@ -68,7 +71,7 @@ mod tests {
     pub(crate) mod detail {
         use super::*;
 
-        pub(crate) async fn send<P: AsRef<Path> + Sync>(
+        pub(crate) async fn send<P: AsRef<Path> + Sync + Copy>(
             path_for_send: P,
             socket: &mut TcpStream,
         ) -> Result<(), HandshakeError> {
@@ -82,12 +85,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_handshake() {
+    async fn send_and_recv_handshake() {
         crate::init_logger_for_test();
 
         let (_temp_dir, path_to_file) = file_hashing::fs::extra::generate_random_file(1000);
         let mut hasher = blake2::Blake2b512::new();
-        let hash_to_test_file =
+        let hash_from_test_file =
             file_hashing::get_hash_file(path_to_file.path(), &mut hasher).unwrap();
 
         const ADDRESS: &'static str = "127.0.0.1:45254";
@@ -104,7 +107,8 @@ mod tests {
         assert_eq!(
             handshake,
             Handshake {
-                file_hash: hash_to_test_file
+                hash: hash_from_test_file,
+                size: 1000
             }
         );
     }
