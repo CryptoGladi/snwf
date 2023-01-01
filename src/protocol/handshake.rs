@@ -1,4 +1,4 @@
-use crate::common::{get_hasher, timeout, TIMEOUT};
+use crate::common::{get_hasher, timeout};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -6,8 +6,7 @@ use thiserror::Error;
 use tokio::{
     fs::metadata,
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream, ToSocketAddrs},
-    time::timeout,
+    net::{TcpListener, TcpStream},
 };
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]

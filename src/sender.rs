@@ -1,11 +1,4 @@
 use crate::common::{generate_config, generate_new_for_config};
-use blake2::Blake2s256;
-use std::net::ToSocketAddrs;
-use std::{
-    hash::Hasher,
-    net::{IpAddr, SocketAddr},
-    sync::{Arc, Mutex},
-};
 
 generate_config!(ConfigSender);
 

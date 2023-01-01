@@ -1,7 +1,4 @@
 use crate::common::{generate_config, generate_new_for_config};
-use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
-
-pub type DoneBytes = usize;
 
 generate_config!(ConfigRecipient);
 

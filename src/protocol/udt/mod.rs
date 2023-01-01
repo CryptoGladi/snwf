@@ -115,8 +115,8 @@ impl UdtRecipient for Recipient {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::common::get_hasher;
     use super::*;
+    use crate::common::get_hasher;
 
     #[tokio::test]
     async fn send_and_recv_udt() {

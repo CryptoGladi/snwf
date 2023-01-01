@@ -1,6 +1,6 @@
 use super::UdtError;
 use crate::{
-    common::{get_hasher, timeout, TIMEOUT},
+    common::{get_hasher, timeout},
     protocol::handshake::{recv_handshake_from_address, send_handshake_from_file},
 };
 use log::debug;
@@ -9,7 +9,6 @@ use tokio::{
     fs::{File, OpenOptions},
     io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
     net::{TcpListener, TcpStream},
-    time::timeout,
 };
 use tokio_udt::UdtConnection;
 
