@@ -1,26 +1,25 @@
-use derive_new::new;
-use std::net::IpAddr;
+use crate::common::{generate_config, generate_new_for_config};
+use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 
 pub type DoneBytes = usize;
 
-pub trait CoreRecipient {
-    fn get_target(&self) -> IpAddr;
+generate_config!(ConfigRecipient);
 
-    fn get_port(&self) -> u16;
+pub trait CoreRecipient {
+    fn get_config(&self) -> ConfigRecipient;
 }
 
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct Recipient {
-    target: IpAddr,
-    port: u16,
+    config: ConfigRecipient,
+}
+
+impl Recipient {
+    generate_new_for_config!(ConfigRecipient);
 }
 
 impl CoreRecipient for Recipient {
-    fn get_target(&self) -> IpAddr {
-        self.target
-    }
-
-    fn get_port(&self) -> u16 {
-        self.port
+    fn get_config(&self) -> ConfigRecipient {
+        self.config.clone()
     }
 }

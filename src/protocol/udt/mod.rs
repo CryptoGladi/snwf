@@ -1,25 +1,12 @@
-use crate::common::{get_hasher, TIMEOUT};
+use crate::common::timeout;
 use crate::protocol::handshake::*;
 use crate::recipient::{CoreRecipient, Recipient};
 use crate::sender::{CoreSender, Sender};
 use async_trait::async_trait;
-use blake2::{Blake2b512, Digest};
-use derive_new::new;
 use log::debug;
-use std::{
-    fs::read_to_string,
-    net::Ipv6Addr,
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::path::Path;
 use thiserror::Error;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
-use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-use tokio::{
-    fs::{File, OpenOptions},
-    time::timeout,
-};
+use tokio::net::{TcpListener, TcpStream};
 use tokio_udt::{UdtConnection, UdtListener};
 
 mod raw;
@@ -53,27 +40,33 @@ pub enum UdtError {
 
 #[async_trait]
 pub trait UdtSender: CoreSender {
-    async fn udt_send_file<P, A>(&mut self, path: P, tcp_address: A) -> Result<(), UdtError>
+    async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
     where
-        P: AsRef<Path> + Send + Copy + Sync,
-        A: ToSocketAddrs + Send;
+        P: AsRef<Path> + Send + Copy + Sync;
 }
 
 #[async_trait]
 impl UdtSender for Sender {
-    async fn udt_send_file<P, A>(&mut self, path: P, tcp_address: A) -> Result<(), UdtError>
+    async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
     where
         P: AsRef<Path> + Send + Copy + Sync,
-        A: ToSocketAddrs + Send,
     {
-        let info_for_connect = (self.get_target(), self.get_port());
+        let config = self.get_config();
+        debug!("running udt_send_file; config: {:?}", config);
 
-        let mut udt = UdtConnection::connect(info_for_connect, None)
-            .await
-            .map_err(UdtError::Connect)?;
-        let mut socket_for_handshake = TcpStream::connect(tcp_address)
-            .await
-            .map_err(UdtError::Connect)?;
+        let mut udt = timeout!(
+            UdtConnection::connect((config.addr, config.port_for_send_files), None),
+            |_| UdtError::TimeoutExpired
+        )?
+        .map_err(UdtError::Connect)?;
+        debug!("done socket udt connect");
+
+        let mut socket_for_handshake = timeout!(
+            TcpStream::connect((config.addr, config.port_for_handshake)),
+            |_| UdtError::TimeoutExpired
+        )?
+        .map_err(UdtError::Connect)?;
+        debug!("done socket handshake connect");
 
         raw::send_file(&mut udt, path, &mut socket_for_handshake).await?;
 
@@ -83,28 +76,34 @@ impl UdtSender for Sender {
 
 #[async_trait]
 pub trait UdtRecipient: CoreRecipient {
-    async fn udt_recv_file<P, A>(&mut self, output: P, bind_tcp_addr: A) -> Result<(), UdtError>
+    async fn udt_recv_file<P>(&mut self, output: P) -> Result<(), UdtError>
     where
-        P: AsRef<Path> + Send + Copy + Sync,
-        A: ToSocketAddrs + Send;
+        P: AsRef<Path> + Send + Copy + Sync;
 }
 
 #[async_trait]
 impl UdtRecipient for Recipient {
-    async fn udt_recv_file<P, A>(&mut self, output: P, bind_tcp_addr: A) -> Result<(), UdtError>
+    async fn udt_recv_file<P>(&mut self, output: P) -> Result<(), UdtError>
     where
         P: AsRef<Path> + Send + Copy + Sync,
-        A: ToSocketAddrs + Send,
     {
-        let udt_listener = UdtListener::bind((Ipv6Addr::UNSPECIFIED, self.get_port()).into(), None)
-            .await
-            .map_err(UdtError::Bind)?;
-        let mut tcp_handshake = TcpListener::bind(bind_tcp_addr)
-            .await
-            .map_err(UdtError::Bind)?;
+        let config = self.get_config();
+        debug!("running udt_recv_file; config: {:?}", config);
 
-        let (addr, mut connection) = udt_listener.accept().await.map_err(UdtError::Accept)?;
-        debug!("Accepted connection from {}", addr);
+        let udt_listener =
+            UdtListener::bind((config.addr, config.port_for_send_files).into(), None)
+                .await
+                .map_err(UdtError::Bind)?;
+        debug!("done socket udt bind");
+
+        let mut tcp_handshake = TcpListener::bind((config.addr, config.port_for_handshake))
+            .await
+            .map_err(UdtError::Bind)?;
+        debug!("done socket handshake bind");
+
+        let (addr, mut connection) = timeout!(udt_listener.accept(), |_| UdtError::TimeoutExpired)?
+            .map_err(UdtError::Accept)?;
+        debug!("accepted connection from {}", addr);
 
         raw::recv_file(&mut connection, &mut tcp_handshake, output).await?;
 
@@ -114,58 +113,32 @@ impl UdtRecipient for Recipient {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
+    use crate::common::get_hasher;
     use super::*;
-    use std::net::{IpAddr, Ipv4Addr};
-
-    pub(crate) mod detail {
-        use super::*;
-        use std::net::IpAddr;
-
-        pub(crate) async fn send(
-            sender: &mut Sender,
-            path: &Path,
-            tcp_address: impl ToSocketAddrs + Send,
-        ) -> Result<(), UdtError> {
-            sender.udt_send_file(path, tcp_address).await?;
-
-            Ok(())
-        }
-
-        pub(crate) async fn recv(
-            recipient: &mut Recipient,
-            output: &Path,
-            bind_tcp_addr: impl ToSocketAddrs + Send,
-        ) -> Result<(), UdtError> {
-            recipient.udt_recv_file(output, bind_tcp_addr).await?;
-
-            Ok(())
-        }
-    }
 
     #[tokio::test]
     async fn send_and_recv_udt() {
         crate::init_logger_for_test();
-        // TODO Сделать везде timeout
 
         let (temp_dir, path_input) = file_hashing::fs::extra::generate_random_file(4352);
         let path_output = temp_dir.join("tess_file.txt");
-        let mut sender = Sender::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 43652);
-        let mut recipient = Recipient::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 43642);
 
-        /*
-        let (send, recv) = tokio::join!(
-            detail::send(&mut sender, path_input.path(), TCP_ADDRESS),
-            detail::recv(&mut recipient, path_output.as_path(), BIND_TCP_ADDRESS)
+        let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 4324, 6343);
+        let mut recipient = Recipient::new("::0".parse().unwrap(), 4324, 6343);
+
+        let (recv, send) = tokio::join!(
+            recipient.udt_recv_file(path_output.as_path()),
+            sender.udt_send_file(path_input.path())
         );
+
         send.unwrap();
         recv.unwrap();
-        */
 
-        //let (send, recv) = tokio::join!(
-        //    sender.udt_send_file(path_input.path(), "127.0.0.1:4533"),
-        //    recipient.udt_recv_file(path_output.as_path(), "127.0.0.1:4533")
-        //);
-        //send.unwrap();
-        //recv.unwrap();
+        let hash_input = file_hashing::get_hash_file(path_input, &mut get_hasher()).unwrap();
+        let hash_output = file_hashing::get_hash_file(path_output, &mut get_hasher()).unwrap();
+
+        assert_eq!(hash_input, hash_output)
     }
 }

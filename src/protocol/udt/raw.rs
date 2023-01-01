@@ -90,60 +90,6 @@ where
     }
 
     Ok(())
-    /*
-    loop {
-        // Sending file
-        if let Ok(len) = timeout!(udt.recv(&mut buf), |_| UdtError::TimeoutExpired) { // BUG ТУТ ОШИБКА
-            let len = len.map_err(UdtError::FileIO)?;
-
-            debug!("len: {}", len);
-            debug!("buf: {}", String::from_utf8(buf[0..len].to_vec()).unwrap());
-
-            file.write_all(&buf[0..len])
-                .await
-                .map_err(UdtError::FileIO)?;
-            file.flush().await.map_err(UdtError::FileIO)?;
-        } else {
-            // End send file?
-
-            // Check file
-            debug!("raw_recv_file. Checking file");
-            let mut hasher = get_hasher();
-            let hash = file_hashing::get_hash_file(path, &mut hasher).map_err(UdtError::FileIO)?;
-
-            if hash != handshake.hash {
-                debug!("hash not valid! hash: {}; handshake.file_hash: {}", hash, handshake.hash);
-                return Err(UdtError::FileInvalid);
-            }
-
-            return Ok(());
-        }
-    }*/
-
-    /*
-    let mut buffer = vec![0u8; 40096];
-    match udt.recv(&mut buffer).await {
-        Ok(_size) => {
-            debug!("buf: {}", String::from_utf8_lossy(&buffer[..]));
-            file.write(&buffer[0.._size]).await.unwrap();
-        }
-        Err(e) => {
-            panic!("Connnection with failed: {}", e);
-        }
-    }
-    file.flush().await.unwrap();
-
-    debug!("raw_recv_file. Checking file");
-    let mut hasher = get_hasher();
-    let hash = file_hashing::get_hash_file(path, &mut hasher).map_err(UdtError::FileIO)?;
-
-    if hash != handshake.file_hash {
-        debug!("hash not valid! hash: {}; handshake.file_hash: {}", hash, handshake.file_hash);
-        return Err(UdtError::FileInvalid);
-    }
-
-    Ok(())
-    */
 }
 
 #[cfg(test)]

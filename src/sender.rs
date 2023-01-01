@@ -1,29 +1,29 @@
+use crate::common::{generate_config, generate_new_for_config};
 use blake2::Blake2s256;
-use derive_new::new;
+use std::net::ToSocketAddrs;
 use std::{
     hash::Hasher,
-    net::IpAddr,
+    net::{IpAddr, SocketAddr},
     sync::{Arc, Mutex},
 };
 
-pub trait CoreSender {
-    fn get_target(&self) -> IpAddr;
+generate_config!(ConfigSender);
 
-    fn get_port(&self) -> u16;
+pub trait CoreSender {
+    fn get_config(&self) -> ConfigSender;
 }
 
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct Sender {
-    target: IpAddr,
-    port: u16,
+    config: ConfigSender,
+}
+
+impl Sender {
+    generate_new_for_config!(ConfigSender);
 }
 
 impl CoreSender for Sender {
-    fn get_target(&self) -> IpAddr {
-        self.target
-    }
-
-    fn get_port(&self) -> u16 {
-        self.port
+    fn get_config(&self) -> ConfigSender {
+        self.config.clone()
     }
 }
