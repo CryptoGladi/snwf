@@ -1,5 +1,7 @@
 # snwf
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/69a3521e0d954c4494cb6d08b0bc9d09)](https://app.codacy.com/gh/CryptoGladi/snwf?utm_source=github.com&utm_medium=referral&utm_content=CryptoGladi/snwf&utm_campaign=Badge_Grade_Settings)
+
 > Library for simple network work on files
 
 # TODO
