@@ -2,19 +2,19 @@
 
 > Library for simple network work on files
 
-[![codacy badge](https://img.shields.io/codacy/grade/187d6864d2684ec7bae17e2ad1277f67?style=for-the-badge)](https://www.codacy.com/gh/CryptoGladi/snwf/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CryptoGladi/snwf&amp;utm_campaign=Badge_Grade) ![total lines](https://img.shields.io/tokei/lines/github/CryptoGladi/snwf?style=for-the-badge) ![repo size](https://img.shields.io/github/repo-size/CryptoGladi/snwf?style=for-the-badge)
+[![codacy badge](https://img.shields.io/codacy/grade/187d6864d2684ec7bae17e2ad1277f67?style=for-the-badge)](https://www.codacy.com/gh/CryptoGladi/snwf/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CryptoGladi/snwf&amp;utm_campaign=Badge_Grade) ![total lines](https://img.shields.io/tokei/lines/github/CryptoGladi/snwf?style=for-the-badge) ![repo size](https://img.shields.io/github/repo-size/CryptoGladi/snwf?style=for-the-badge) ![license](https://img.shields.io/github/license/CryptoGladi/snwf?style=for-the-badge)
 
-# Motivation
+# Motivation :rocket:
 
 If you just need to transfer a file over the network to another computer,
 but you don't want to write hundreds of lines of code to implement a
-"receiver" and "sender", then this library is right for you.
+**receiver** and **sender**, then this library is right for you.
 
-# Features
+# Features :star:
 
 * **udt** - enable [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol support
 
-# Example
+# Example (udt)
 
 ```rust
 use snwf::prelude::*;
