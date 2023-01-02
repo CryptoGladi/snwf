@@ -12,7 +12,7 @@ but you don't want to write hundreds of lines of code to implement a
 
 # Features :star:
 
-* **udt** - enable [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol support
+  * **udt** - enable [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol support
 
 # Example (udt)
 

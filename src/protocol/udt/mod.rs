@@ -11,12 +11,14 @@ use crate::recipient::{CoreRecipient, Recipient};
 use crate::sender::{CoreSender, Sender};
 use async_trait::async_trait;
 use log::debug;
+use std::fmt::{Display, Debug};
 use std::path::Path;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_udt::{UdtConnection, UdtListener};
 
 pub mod error;
 mod raw;
+mod detail;
 
 pub use error::UdtError;
 
@@ -26,7 +28,11 @@ pub trait UdtSender: CoreSender {
     /// Send file via [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol
     async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
     where
-        P: AsRef<Path> + Send + Copy + Sync;
+        P: AsRef<Path> + Send + Copy + Sync + Debug;
+
+    async fn udt_send_files<P>(&mut self, paths: &Vec<P>) -> Result<(), UdtError>
+        where
+        P: AsRef<Path> + Send + Copy + Sync + Debug;
 }
 
 #[async_trait]
@@ -34,28 +40,29 @@ impl UdtSender for Sender {
     /// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation for [`CoreSender`]
     async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
     where
-        P: AsRef<Path> + Send + Copy + Sync,
+        P: AsRef<Path> + Send + Copy + Sync + Debug,
     {
         let config = self.get_config();
-        debug!("running udt_send_file; config: {:?}", config);
+        debug!("running udt_send_file; config: {:?}; path: {:?}", config, path);
 
-        let mut udt = timeout!(
-            UdtConnection::connect((config.addr, config.port_for_send_files), None),
-            |_| UdtError::TimeoutExpired,
-            config.timeout
-        )?
-        .map_err(UdtError::Connect)?;
-        debug!("done socket udt connect");
-
-        let mut socket_for_handshake = timeout!(
-            TcpStream::connect((config.addr, config.port_for_handshake)),
-            |_| UdtError::TimeoutExpired,
-            config.timeout
-        )?
-        .map_err(UdtError::Connect)?;
-        debug!("done socket handshake connect");
-
+        let (mut udt, mut socket_for_handshake) = detail::connect_for_sender(&config).await?;
         raw::send_file(&mut udt, path, &mut socket_for_handshake).await?;
+
+        Ok(())
+    }
+
+    async fn udt_send_files<P>(&mut self, paths: &Vec<P>) -> Result<(), UdtError>
+    where
+    P: AsRef<Path> + Send + Copy + Sync + Debug {
+        let config = self.get_config();
+        debug!("running udt_send_file; config: {:?}; paths: {:?}", config, paths);
+
+        let (mut udt, mut socket_for_handshake) = detail::connect_for_sender(&config).await?;
+
+        for path in paths.iter() {
+            raw::send_file(&mut udt, path, &mut socket_for_handshake).await?;
+        }
+
 
         Ok(())
     }

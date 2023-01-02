@@ -1,3 +1,5 @@
+use std::{sync::{Arc}, fmt::Debug};
+
 /// To make it easier to call [`tokio::time::timeout`] with a custom error.
 macro_rules! timeout {
     ($x:expr, $error:expr, $timeout:expr) => {
@@ -13,6 +15,26 @@ macro_rules! timeout {
 
 pub(crate) use timeout;
 
+pub enum Progressing {
+    Yield {
+        done_files: u64,
+        done_bytes: u64,
+    },
+    Done,
+}
+
+pub trait ProgressFnT: FnMut(Progressing) {}
+
+impl<F> ProgressFnT for F where F: FnMut(Progressing) {}
+
+impl std::fmt::Debug for dyn ProgressFnT {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ProgressFn")
+    }
+}
+
+pub type ProgressFn = Arc<Mutex<dyn ProgressFnT>>;
+
 /// Generate config for [`Sender`] and [`Recipient`]
 macro_rules! generate_config {
     ($name:ident, $config_for:ident) => {
@@ -23,10 +45,11 @@ macro_rules! generate_config {
         #[doc = "**Generate by macros**"]
         #[derive(Debug, Clone)]
         pub struct $name {
-            pub addr: std::net::IpAddr,
-            pub port_for_send_files: u16,
-            pub port_for_handshake: u16,
-            pub timeout: std::time::Duration,
+            pub(crate) addr: std::net::IpAddr,
+            pub(crate) port_for_send_files: u16,
+            pub(crate) port_for_handshake: u16,
+            pub(crate) timeout: std::time::Duration,
+            pub(crate) progress: crate::common::macros::ProgressFn
         }
     };
 }
@@ -41,11 +64,14 @@ macro_rules! generate_new_for_config {
         #[doc = "`]\n"]
         #[doc = "* `addr` - IP address.\n"]
         #[doc = "* `port_for_send_files` - Port for sending files. Uses this port only [`crate::protocol`].\n"]
-        #[doc = "* `port_for_handshake` - Handshake port. The [`crate::protocol`] does not use it."]
+        #[doc = "* `port_for_handshake` - Handshake port. The [`crate::protocol`] does not use it.\n"]
+        #[doc = "# Warning!\n"]
+        #[doc = "**Generate by macros**"]
         pub fn new(
             addr: std::net::IpAddr,
             port_for_send_files: u16,
             port_for_handshake: u16,
+            progress: crate::common::macros::ProgressFn
         ) -> Self {
             Self {
                 config: $name_config {
@@ -53,6 +79,7 @@ macro_rules! generate_new_for_config {
                     port_for_send_files,
                     port_for_handshake,
                     timeout: crate::common::DEFAULT_TIMEOUT,
+                    progress,
                 },
             }
         }
@@ -60,3 +87,4 @@ macro_rules! generate_new_for_config {
 }
 
 pub(crate) use generate_new_for_config;
+use tokio::sync::Mutex;
