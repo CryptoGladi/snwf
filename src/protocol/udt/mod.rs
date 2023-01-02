@@ -1,45 +1,29 @@
+//! # [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation
+//!
+//! ## How it works?
+//!
+//! 1. We send a handshake that contains the checksum, the
+//! name of the original file and the file size
+//! 2. Running the udt implementation
+
 use crate::common::timeout;
-use crate::protocol::handshake::*;
 use crate::recipient::{CoreRecipient, Recipient};
 use crate::sender::{CoreSender, Sender};
 use async_trait::async_trait;
 use log::debug;
 use std::path::Path;
-use thiserror::Error;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_udt::{UdtConnection, UdtListener};
 
+pub mod error;
 mod raw;
 
-#[derive(Debug, Error)]
-pub enum UdtError {
-    #[error("bind socket")]
-    Bind(#[source] std::io::Error),
+pub use error::UdtError;
 
-    #[error("accept sender")]
-    Accept(#[source] std::io::Error),
-
-    #[error("connection to recipient")]
-    Connect(#[source] std::io::Error),
-
-    #[error("IO filesystem")]
-    FileIO(#[source] std::io::Error),
-
-    #[error("IO network")]
-    NetworkIO(#[source] std::io::Error),
-
-    #[error("handshake")]
-    Handshake(#[from] HandshakeError),
-
-    #[error("file invalid. Check network")]
-    FileInvalid,
-
-    #[error("timeout expired")]
-    TimeoutExpired,
-}
-
+/// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) trait for [`CoreSender`]
 #[async_trait]
 pub trait UdtSender: CoreSender {
+    /// Send file via [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol
     async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
     where
         P: AsRef<Path> + Send + Copy + Sync;
@@ -47,6 +31,7 @@ pub trait UdtSender: CoreSender {
 
 #[async_trait]
 impl UdtSender for Sender {
+    /// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation for [`CoreSender`]
     async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
     where
         P: AsRef<Path> + Send + Copy + Sync,
@@ -56,14 +41,16 @@ impl UdtSender for Sender {
 
         let mut udt = timeout!(
             UdtConnection::connect((config.addr, config.port_for_send_files), None),
-            |_| UdtError::TimeoutExpired
+            |_| UdtError::TimeoutExpired,
+            config.timeout
         )?
         .map_err(UdtError::Connect)?;
         debug!("done socket udt connect");
 
         let mut socket_for_handshake = timeout!(
             TcpStream::connect((config.addr, config.port_for_handshake)),
-            |_| UdtError::TimeoutExpired
+            |_| UdtError::TimeoutExpired,
+            config.timeout
         )?
         .map_err(UdtError::Connect)?;
         debug!("done socket handshake connect");
@@ -74,8 +61,10 @@ impl UdtSender for Sender {
     }
 }
 
+/// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) trait for [`CoreRecipient`]
 #[async_trait]
 pub trait UdtRecipient: CoreRecipient {
+    /// Receive a file via [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol
     async fn udt_recv_file<P>(&mut self, output: P) -> Result<(), UdtError>
     where
         P: AsRef<Path> + Send + Copy + Sync;
@@ -83,6 +72,7 @@ pub trait UdtRecipient: CoreRecipient {
 
 #[async_trait]
 impl UdtRecipient for Recipient {
+    /// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation for [`CoreRecipient`]
     async fn udt_recv_file<P>(&mut self, output: P) -> Result<(), UdtError>
     where
         P: AsRef<Path> + Send + Copy + Sync,
@@ -101,8 +91,12 @@ impl UdtRecipient for Recipient {
             .map_err(UdtError::Bind)?;
         debug!("done socket handshake bind");
 
-        let (addr, mut connection) = timeout!(udt_listener.accept(), |_| UdtError::TimeoutExpired)?
-            .map_err(UdtError::Accept)?;
+        let (addr, mut connection) = timeout!(
+            udt_listener.accept(),
+            |_| UdtError::TimeoutExpired,
+            config.timeout
+        )?
+        .map_err(UdtError::Accept)?;
         debug!("accepted connection from {}", addr);
 
         raw::recv_file(&mut connection, &mut tcp_handshake, output).await?;
@@ -113,8 +107,6 @@ impl UdtRecipient for Recipient {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use super::*;
     use crate::common::get_hasher;
 

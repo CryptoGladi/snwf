@@ -1,3 +1,5 @@
+//! # Raw [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation
+
 use super::UdtError;
 use crate::{
     common::{get_hasher, timeout},
@@ -13,14 +15,14 @@ use tokio::{
 use tokio_udt::UdtConnection;
 
 pub(crate) async fn send_file<P>(
-    udt: &mut UdtConnection,
+    udt_connection: &mut UdtConnection,
     path: P,
-    socket: &mut TcpStream,
+    handshake_socket: &mut TcpStream,
 ) -> Result<(), UdtError>
 where
     P: AsRef<Path> + Sync + Copy,
 {
-    send_handshake_from_file(path, socket).await?;
+    send_handshake_from_file(path, handshake_socket).await?;
     let file = File::open(path).await.map_err(UdtError::FileIO)?;
     let mut reader = BufReader::new(file);
 
@@ -32,8 +34,10 @@ where
             return Ok(());
         }
 
-        timeout!(udt.send(&buf[0..len]), |_| UdtError::TimeoutExpired)?
-            .map_err(UdtError::FileIO)?;
+        timeout!(udt_connection.send(&buf[0..len]), |_| {
+            UdtError::TimeoutExpired
+        })?
+        .map_err(UdtError::FileIO)?;
     }
 }
 
@@ -99,7 +103,7 @@ mod tests {
 
     pub(crate) mod detail {
         use super::*;
-        use std::{net::SocketAddr, path::PathBuf};
+        use std::{net::SocketAddr};
         use tokio_udt::UdtListener;
 
         pub(crate) async fn async_send(

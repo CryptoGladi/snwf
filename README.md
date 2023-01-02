@@ -2,18 +2,7 @@
 
 > Library for simple network work on files
 
-# TODO
-
-[![Crates.io][crates-badge]][crates-url]
-[![MIT licensed][mit-badge]][mit-url]
-[![Build Status][actions-badge]][actions-url]
-
-[crates-badge]: https://img.shields.io/crates/v/tokio.svg
-[crates-url]: https://crates.io/crates/tokio
-[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[mit-url]: https://github.com/CryptoGladi/snwf/blob/master/LICENSE
-[actions-badge]: https://github.com/CryptoGladi/snwf/workflows/CI/badge.svg
-[actions-url]: https://github.com/CryptoGladi/snwf/actions?query=workflow%3ACI+branch%3Amain
+[![codacy badge](https://img.shields.io/codacy/grade/187d6864d2684ec7bae17e2ad1277f67?style=for-the-badge)](https://www.codacy.com/gh/CryptoGladi/snwf/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CryptoGladi/snwf&amp;utm_campaign=Badge_Grade) ![total lines](https://img.shields.io/tokei/lines/github/CryptoGladi/snwf?style=for-the-badge) ![repo size](https://img.shields.io/github/repo-size/CryptoGladi/snwf?style=for-the-badge)
 
 # Motivation
 
@@ -23,22 +12,27 @@ but you don't want to write hundreds of lines of code to implement a
 
 # Features
 
-'udt' - enable [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol support
+* **udt** - enable [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol support
 
 # Example
 
-### Send file
-
 ```rust
-async main() {
+use snwf::prelude::*;
+use std::path::Path;
 
+#[tokio::main]
+async fn main() {
+   let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 4324, 6343);
+   let mut recipient = Recipient::new("::0".parse().unwrap(), 4324, 6343);
+
+   let (recv, send) = tokio::join!(
+       recipient.udt_recv_file(Path::new("other_file.txt")),
+       sender.udt_send_file(Path::new("file_for_send.txt"))
+   );
+   
+   send.unwrap();
+   recv.unwrap();
 }
 ```
 
-### Get file
-
-```rust
-async main() {
-
-}
-```
+TODO Add badges
