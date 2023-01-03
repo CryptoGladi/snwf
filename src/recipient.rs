@@ -1,6 +1,8 @@
 //! Module for [`Recipient`]
 
-use crate::common::{generate_config, generate_new_for_config};
+use crate::common::{
+    generate_config, generate_new_for_config, generate_set_progress_fn_for_config,
+};
 
 generate_config!(ConfigRecipient, Recipient);
 
@@ -21,6 +23,8 @@ pub struct Recipient {
 
 impl Recipient {
     generate_new_for_config!(ConfigRecipient);
+
+    generate_set_progress_fn_for_config!();
 }
 
 impl CoreRecipient for Recipient {

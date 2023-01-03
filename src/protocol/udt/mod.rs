@@ -10,20 +10,22 @@ use crate::common::timeout;
 use crate::recipient::{CoreRecipient, Recipient};
 use crate::sender::{CoreSender, Sender};
 use async_trait::async_trait;
+use core::num;
+use file_hashing::ProgressInfo;
 use log::debug;
-use std::fmt::{Display, Debug};
+use std::fmt::{Debug, Display};
 use std::path::Path;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_udt::{UdtConnection, UdtListener};
 
+mod detail;
 pub mod error;
 mod raw;
-mod detail;
 
 pub use error::UdtError;
 
 /// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) trait for [`CoreSender`]
-#[async_trait]
+#[async_trait(?Send)]
 pub trait UdtSender: CoreSender {
     /// Send file via [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol
     async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
@@ -31,11 +33,11 @@ pub trait UdtSender: CoreSender {
         P: AsRef<Path> + Send + Copy + Sync + Debug;
 
     async fn udt_send_files<P>(&mut self, paths: &Vec<P>) -> Result<(), UdtError>
-        where
+    where
         P: AsRef<Path> + Send + Copy + Sync + Debug;
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl UdtSender for Sender {
     /// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation for [`CoreSender`]
     async fn udt_send_file<P>(&mut self, path: P) -> Result<(), UdtError>
@@ -43,33 +45,46 @@ impl UdtSender for Sender {
         P: AsRef<Path> + Send + Copy + Sync + Debug,
     {
         let config = self.get_config();
-        debug!("running udt_send_file; config: {:?}; path: {:?}", config, path);
+        debug!(
+            "running udt_send_file; config: {:?}; path: {:?}",
+            config, path
+        );
 
         let (mut udt, mut socket_for_handshake) = detail::connect_for_sender(&config).await?;
-        raw::send_file(&mut udt, path, &mut socket_for_handshake).await?;
+        raw::send_file(&mut udt, path, &mut socket_for_handshake, Some(config), 0).await?;
 
         Ok(())
     }
 
     async fn udt_send_files<P>(&mut self, paths: &Vec<P>) -> Result<(), UdtError>
     where
-    P: AsRef<Path> + Send + Copy + Sync + Debug {
+        P: AsRef<Path> + Send + Copy + Sync + Debug,
+    {
         let config = self.get_config();
-        debug!("running udt_send_file; config: {:?}; paths: {:?}", config, paths);
+        debug!(
+            "running udt_send_file; config: {:?}; paths: {:?}",
+            config, paths
+        );
 
         let (mut udt, mut socket_for_handshake) = detail::connect_for_sender(&config).await?;
 
-        for path in paths.iter() {
-            raw::send_file(&mut udt, path, &mut socket_for_handshake).await?;
+        for (number_file, path) in paths.iter().enumerate() {
+            raw::send_file(
+                &mut udt,
+                path,
+                &mut socket_for_handshake,
+                Some(config.clone()),
+                number_file as u64,
+            )
+            .await?;
         }
-
 
         Ok(())
     }
 }
 
 /// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) trait for [`CoreRecipient`]
-#[async_trait]
+#[async_trait(?Send)]
 pub trait UdtRecipient: CoreRecipient {
     /// Receive a file via [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol
     async fn udt_recv_file<P>(&mut self, output: P) -> Result<(), UdtError>
@@ -77,7 +92,7 @@ pub trait UdtRecipient: CoreRecipient {
         P: AsRef<Path> + Send + Copy + Sync;
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl UdtRecipient for Recipient {
     /// [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation for [`CoreRecipient`]
     async fn udt_recv_file<P>(&mut self, output: P) -> Result<(), UdtError>
@@ -114,18 +129,39 @@ impl UdtRecipient for Recipient {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{atomic::AtomicBool, Mutex};
+
     use super::*;
-    use crate::common::get_hasher;
+    use crate::common::{get_hasher, Progressing};
 
     #[tokio::test]
     async fn send_and_recv_udt() {
         crate::init_logger_for_test();
 
+        let mut run_progressing_sender_yield = AtomicBool::new(false);
+        let mut run_progressing_sender_done = AtomicBool::new(false);
+        let mut run_progressing_recipient_yield = false;
+        let mut run_progressing_recipient_done = false; // TODO
+
         let (temp_dir, path_input) = file_hashing::fs::extra::generate_random_file(4352);
         let path_output = temp_dir.join("tess_file.txt");
 
         let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 4324, 6343);
+
+        {
+            sender.set_progress_fn(Box::new(|progressing| {
+                debug!("progressing sender: {:?}", progressing);
+                //match progressing {
+                //    Progressing::Yield { done_files: _, total_bytes: _, done_bytes: _ } => run_progressing_sender_yield = true,
+                //    Progressing::Done => run_progressing_sender_done = true,
+                //}
+            }));
+        }
+
         let mut recipient = Recipient::new("::0".parse().unwrap(), 4324, 6343);
+        recipient.set_progress_fn(Box::new(|progressing| {
+            debug!("progressing recipient: {:?}", progressing)
+        }));
 
         let (recv, send) = tokio::join!(
             recipient.udt_recv_file(path_output.as_path()),

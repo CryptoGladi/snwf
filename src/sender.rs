@@ -1,6 +1,8 @@
 //! Module for [`Sender`]
 
-use crate::common::{generate_config, generate_new_for_config};
+use crate::common::{
+    generate_config, generate_new_for_config, generate_set_progress_fn_for_config,
+};
 
 generate_config!(ConfigSender, Sender);
 
@@ -22,6 +24,8 @@ pub struct Sender {
 
 impl Sender {
     generate_new_for_config!(ConfigSender);
+
+    generate_set_progress_fn_for_config!();
 }
 
 impl CoreSender for Sender {

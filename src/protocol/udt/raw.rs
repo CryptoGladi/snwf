@@ -2,9 +2,11 @@
 
 use super::UdtError;
 use crate::{
-    common::{get_hasher, timeout},
+    common::{get_hasher, timeout, Progressing},
+    prelude::ConfigSender,
     protocol::handshake::{recv_handshake_from_address, send_handshake_from_file},
 };
+use core::num;
 use log::debug;
 use std::path::Path;
 use tokio::{
@@ -14,31 +16,55 @@ use tokio::{
 };
 use tokio_udt::UdtConnection;
 
+fn run_progress_fn(config: &Option<ConfigSender>, progressing: Progressing) {
+    if let Some(config) = config {
+        if let Some(progress_fn) = config.progress_fn.clone() {
+            progress_fn.lock().unwrap()(progressing);
+        }
+    }
+}
+
 pub(crate) async fn send_file<P>(
     udt_connection: &mut UdtConnection,
     path: P,
     handshake_socket: &mut TcpStream,
+    config: Option<ConfigSender>,
+    number_file: u64,
 ) -> Result<(), UdtError>
 where
     P: AsRef<Path> + Sync + Copy,
 {
-    send_handshake_from_file(path, handshake_socket).await?;
+    let handshake = send_handshake_from_file(path, handshake_socket).await?;
     let file = File::open(path).await.map_err(UdtError::FileIO)?;
     let mut reader = BufReader::new(file);
+    let mut done_bytes = 0;
 
     let mut buf = vec![0u8; 4096];
     loop {
         let len = reader.read(&mut buf).await.map_err(UdtError::FileIO)?;
 
         if len == 0 {
-            return Ok(());
+            break;
         }
 
         timeout!(udt_connection.send(&buf[0..len]), |_| {
             UdtError::TimeoutExpired
         })?
         .map_err(UdtError::FileIO)?;
+
+        done_bytes += len;
+        run_progress_fn(
+            &config,
+            Progressing::Yield {
+                done_files: number_file,
+                total_bytes: handshake.size,
+                done_bytes: done_bytes as u64,
+            },
+        );
     }
+
+    run_progress_fn(&config, Progressing::Done);
+    Ok(())
 }
 
 pub(crate) async fn recv_file<P>(
@@ -103,7 +129,7 @@ mod tests {
 
     pub(crate) mod detail {
         use super::*;
-        use std::{net::SocketAddr};
+        use std::net::SocketAddr;
         use tokio_udt::UdtListener;
 
         pub(crate) async fn async_send(
@@ -120,7 +146,7 @@ mod tests {
             debug!("Done all connect");
 
             debug!("Running raw_send_file...");
-            send_file(&mut udt, path_to_file, &mut tcp).await?;
+            send_file(&mut udt, path_to_file, &mut tcp, None, 0).await?;
             debug!("Done raw_send_file!");
 
             Ok(())

@@ -1,4 +1,4 @@
-use std::{sync::{Arc}, fmt::Debug};
+use std::{fmt::Debug, sync::Arc};
 
 /// To make it easier to call [`tokio::time::timeout`] with a custom error.
 macro_rules! timeout {
@@ -15,26 +15,6 @@ macro_rules! timeout {
 
 pub(crate) use timeout;
 
-pub enum Progressing {
-    Yield {
-        done_files: u64,
-        done_bytes: u64,
-    },
-    Done,
-}
-
-pub trait ProgressFnT: FnMut(Progressing) {}
-
-impl<F> ProgressFnT for F where F: FnMut(Progressing) {}
-
-impl std::fmt::Debug for dyn ProgressFnT {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ProgressFn")
-    }
-}
-
-pub type ProgressFn = Arc<Mutex<dyn ProgressFnT>>;
-
 /// Generate config for [`Sender`] and [`Recipient`]
 macro_rules! generate_config {
     ($name:ident, $config_for:ident) => {
@@ -49,7 +29,7 @@ macro_rules! generate_config {
             pub(crate) port_for_send_files: u16,
             pub(crate) port_for_handshake: u16,
             pub(crate) timeout: std::time::Duration,
-            pub(crate) progress: crate::common::macros::ProgressFn
+            pub(crate) progress_fn: Option<crate::common::alias::ProgressFn>,
         }
     };
 }
@@ -70,8 +50,7 @@ macro_rules! generate_new_for_config {
         pub fn new(
             addr: std::net::IpAddr,
             port_for_send_files: u16,
-            port_for_handshake: u16,
-            progress: crate::common::macros::ProgressFn
+            port_for_handshake: u16
         ) -> Self {
             Self {
                 config: $name_config {
@@ -79,7 +58,7 @@ macro_rules! generate_new_for_config {
                     port_for_send_files,
                     port_for_handshake,
                     timeout: crate::common::DEFAULT_TIMEOUT,
-                    progress,
+                    progress_fn: None
                 },
             }
         }
@@ -87,4 +66,13 @@ macro_rules! generate_new_for_config {
 }
 
 pub(crate) use generate_new_for_config;
-use tokio::sync::Mutex;
+
+macro_rules! generate_set_progress_fn_for_config {
+    () => {
+        pub fn set_progress_fn(&mut self, progress_fn: Box<dyn crate::common::alias::ProgressFnT>) {
+            self.config.progress_fn = Some(std::sync::Arc::new(std::sync::Mutex::new(progress_fn)));
+        }
+    };
+}
+
+pub(crate) use generate_set_progress_fn_for_config;

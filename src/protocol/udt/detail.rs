@@ -1,10 +1,12 @@
+use super::UdtError;
+use crate::{common::timeout, prelude::ConfigSender};
 use log::debug;
 use tokio::net::TcpStream;
 use tokio_udt::UdtConnection;
-use crate::{common::timeout, prelude::ConfigSender};
-use super::UdtError;
 
-pub(crate) async fn connect_for_sender(config: &ConfigSender) -> Result<(UdtConnection, TcpStream), UdtError> {
+pub(crate) async fn connect_for_sender(
+    config: &ConfigSender,
+) -> Result<(UdtConnection, TcpStream), UdtError> {
     debug!("run join_connect for udt");
 
     let udt_connection = timeout!(
