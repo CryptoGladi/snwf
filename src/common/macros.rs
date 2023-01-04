@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+//! Useful macros
 
 /// To make it easier to call [`tokio::time::timeout`] with a custom error.
 macro_rules! timeout {
@@ -15,7 +15,7 @@ macro_rules! timeout {
 
 pub(crate) use timeout;
 
-/// Generate config for [`Sender`] and [`Recipient`]
+/// Generate config for [`crate::sender::Sender`] and [`crate::recipient::Recipient`]
 macro_rules! generate_config {
     ($name:ident, $config_for:ident) => {
         #[doc = "Config for [`"]
@@ -25,10 +25,20 @@ macro_rules! generate_config {
         #[doc = "**Generate by macros**"]
         #[derive(Clone)]
         pub struct $name<'a> {
+            #[doc = "IP address for bind or connect"]
             pub(crate) addr: std::net::IpAddr,
+
+            #[doc = "Port for sending files. Uses this port only [`crate::protocol`]"]
             pub(crate) port_for_send_files: u16,
+
+            #[doc = "Handshake port. The [`crate::protocol`] does not use it"]
             pub(crate) port_for_handshake: u16,
+
+            #[doc = "Timeout for getting error"]
             pub(crate) timeout: std::time::Duration,
+
+            #[doc = "Callback to check the progress of the operation\n\n"]
+            #[doc = "To change it, you need to call set_progress_fn"]
             pub(crate) progress_fn: Option<crate::common::alias::ProgressFn<'a>>,
         }
 
@@ -55,7 +65,7 @@ macro_rules! generate_new_for_config {
         #[doc = "New for [`"]
         #[doc = stringify!(Self)]
         #[doc = "`]\n"]
-        #[doc = "* `addr` - IP address.\n"]
+        #[doc = "* `addr` - IP address for bind or connect.\n"]
         #[doc = "* `port_for_send_files` - Port for sending files. Uses this port only [`crate::protocol`].\n"]
         #[doc = "* `port_for_handshake` - Handshake port. The [`crate::protocol`] does not use it.\n"]
         #[doc = "# Warning!\n"]

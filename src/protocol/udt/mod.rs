@@ -1,10 +1,35 @@
-//! # [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation
+//! [UDT](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation
 //!
-//! ## How it works?
+//! # Example
+//! 
+//! ```no_run
+//! # use snwf::prelude::*;
+//! # use std::path::Path;
+//! #
+//! #[tokio::main]
+//! async fn main() {
+//!    let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 4324, 6343);
+//!    let mut recipient = Recipient::new("::0".parse().unwrap(), 4324, 6343);
+//!
+//!    sender.set_progress_fn(Some(|progressing| println!("progress info: {:?}", progressing) ));
+//!    
+//!    let (recv, send) = tokio::join!(
+//!        recipient.udt_recv_file(Path::new("other_file.txt")),
+//!        sender.udt_send_file(Path::new("file_for_send.txt"))
+//!    );
+//!    
+//!    send.unwrap();
+//!    recv.unwrap();
+//! }
+//! ```
+//! 
+//! # How it works?
 //!
 //! 1. We send a handshake that contains the checksum, the
 //! name of the original file and the file size
 //! 2. Running the udt implementation
+//! 
+//! And so for **EVERY** file
 
 use crate::common::timeout;
 use crate::recipient::{CoreRecipient, Recipient};

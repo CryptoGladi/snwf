@@ -1,3 +1,5 @@
+//! Useful constant or const fn
+
 use blake2::{Blake2b512, Digest};
 use std::time::Duration;
 

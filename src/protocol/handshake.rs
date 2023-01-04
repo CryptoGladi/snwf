@@ -1,3 +1,14 @@
+//! Handshake - send information about a file
+//! 
+//! # Description
+//! 
+//! Handshake - used information about a file for check valid.
+//! 
+//! * Format: [json](https://github.com/serde-rs/json)
+//! * Max size: 512 (hash) + 300 (filename) + 60 (other information) = 872
+//! 
+//! **The algorithm of work may differ from the type of [`crate::protocol`]!**
+
 use crate::common::{get_hasher, timeout};
 use log::debug;
 use serde::{Deserialize, Serialize};

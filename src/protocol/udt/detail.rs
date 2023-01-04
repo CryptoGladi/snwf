@@ -1,9 +1,12 @@
+//! More detailed functions for [udt](crate::protocol::udt)
+
 use super::UdtError;
 use crate::{common::timeout, prelude::ConfigSender};
 use log::debug;
 use tokio::net::TcpStream;
 use tokio_udt::UdtConnection;
 
+/// Make all connections for [Sender](crate::sender::Sender)
 pub(crate) async fn connect_for_sender(
     config: &ConfigSender<'_>,
 ) -> Result<(UdtConnection, TcpStream), UdtError> {

@@ -1,4 +1,5 @@
-/// Prelude module
+//! Prelude
+
 pub use crate::recipient::*;
 pub use crate::sender::*;
 

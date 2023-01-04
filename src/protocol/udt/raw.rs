@@ -1,4 +1,4 @@
-//! # Raw [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation
+//! Raw [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation
 
 use super::UdtError;
 use crate::{
@@ -103,7 +103,7 @@ where
     let mut done_bytes = 0;
 
     loop {
-        let len = udt.recv(&mut buf).await.map_err(UdtError::NetworkIO)?;
+        let len = udt.recv(&mut buf).await.map_err(UdtError::ReceivingData)?;
 
         file.write_all(&buf[0..len])
             .await

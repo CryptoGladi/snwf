@@ -10,7 +10,9 @@
 //!
 //! # Features
 //!
-//! * **udt** - enable [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol support
+//! * **udt** - [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol
+//! * [Callback function](crate::common::alias::Progressing)
+//! * Use `#![forbid(unsafe_code)]`
 //!
 //! # Example
 //!
@@ -25,6 +27,8 @@
 //!    let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 4324, 6343);
 //!    let mut recipient = Recipient::new("::0".parse().unwrap(), 4324, 6343);
 //!
+//!    sender.set_progress_fn(Some(|progressing| println!("progress info: {:?}", progressing) ));
+//!    
 //!    let (recv, send) = tokio::join!(
 //!        recipient.udt_recv_file(Path::new("other_file.txt")),
 //!        sender.udt_send_file(Path::new("file_for_send.txt"))
@@ -37,8 +41,12 @@
 //!
 //! * [`sender::Sender`] - only send files
 //! * [`recipient::Recipient`] - Only receives files
+//! 
+//! snwf by [CryptoGladi](https://github.com/CryptoGladi)
 
-pub(crate) mod common;
+#![forbid(unsafe_code)]
+
+pub mod common;
 pub mod prelude;
 pub mod protocol;
 pub mod recipient; // or client

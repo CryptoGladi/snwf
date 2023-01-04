@@ -1,6 +1,6 @@
-//! # Implementation of all protocols
+//! Implementation of all protocols
 
-pub(crate) mod handshake;
+pub mod handshake;
 
 #[cfg(feature = "udt")]
 pub mod udt;

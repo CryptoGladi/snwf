@@ -1,29 +1,62 @@
+//! All error in [udt](crate::protocol::udt)
+
 use crate::protocol::handshake::*;
 use thiserror::Error;
 
+/// Enum error
 #[derive(Debug, Error)]
 pub enum UdtError {
+    /// An error occurred while enabling the server socket (TcpListener)
+    /// 
+    /// # Example
+    ///
+    /// ```should_panic
+    /// # use std::net::TcpListener;
+    /// #
+    /// let server_socket = TcpListener::bind("127.0.0.1:-1").unwrap();
+    /// ```
     #[error("bind socket")]
     Bind(#[source] std::io::Error),
 
-    #[error("accept sender")]
+    /// The error occurs when the socket is not accepted correctly
+    /// 
+    /// Please, see [it](std::net::TcpListener::accept)
+    /// 
+    /// **Do not confuse with [`TimeoutExpired`]!**
+    #[error("accept socket")]
     Accept(#[source] std::io::Error),
 
-    #[error("connection to recipient")]
+    /// This error occurs when the connection is wrong
+    /// 
+    /// Please, see [it](std::net::TcpStream::connect)
+    /// 
+    /// **Do not confuse with [`TimeoutExpired`]!**
+    #[error("connection to socket")]
     Connect(#[source] std::io::Error),
 
+    /// This error occurs when the files are not working properly
+    ///
+    /// For example: `You do not have permission to write to the file`
     #[error("IO filesystem")]
     FileIO(#[source] std::io::Error),
 
-    #[error("IO network")]
-    NetworkIO(#[source] std::io::Error),
+    /// This error occurs if we cannot receive something from the socket
+    /// 
+    /// Please, see [it](std::net::TcpStream::read)
+    #[error("receiving data")]
+    ReceivingData(#[source] std::io::Error),
 
+    /// Handshake error
     #[error("handshake")]
     Handshake(#[from] HandshakeError),
 
-    #[error("file invalid. Check network")]
+    /// Checksum is different
+    #[error("file invalid")]
     FileInvalid,
 
+    /// Each operation that is connected to the network has time limit
+    /// 
+    /// This is the timeout
     #[error("timeout expired")]
     TimeoutExpired,
 }
