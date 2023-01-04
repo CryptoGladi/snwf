@@ -1,7 +1,7 @@
 //! Module for [`Recipient`]
 
-use std::sync::{Arc, Mutex};
 use crate::common::{generate_config, generate_new_for_config, Progressing};
+use std::sync::{Arc, Mutex};
 
 generate_config!(ConfigRecipient, Recipient);
 
@@ -11,7 +11,7 @@ pub trait CoreRecipient<'a> {
     fn get_config(&self) -> ConfigRecipient<'a>;
 
     /// Set ['ProgressFnT']
-    fn set_progress_fn(&mut self, progress_fn: &'a Box<dyn FnMut(Progressing) + 'a>);
+    fn set_progress_fn(&mut self, progress_fn: Option<impl FnMut(Progressing) + 'a>);
 }
 
 /// Main implementation for [`CoreRecipient`]
@@ -34,26 +34,34 @@ impl<'a> CoreRecipient<'a> for Recipient<'a> {
     }
 
     /// Set ['ProgressFnT']
-    fn set_progress_fn(&mut self, progress_fn: &'a Box<dyn FnMut(Progressing) + 'a>) {
-        self.config.progress_fn = Some(&Arc::new(Mutex::new(progress_fn)));
+    fn set_progress_fn(&mut self, progress_fn: Option<impl FnMut(Progressing) + 'a>) {
+        self.config.progress_fn = if let Some(progress_fn) = progress_fn {
+            Some(Arc::new(Mutex::new(Box::new(progress_fn))))
+        } else {
+            None
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Recipient, CoreRecipient};
+    use super::*;
+    use crate::protocol::udt::*;
+    use std::path::Path;
 
-    #[test]
-    fn test_progress_fn_set() {
-        let mut recipient = Recipient::new("127.0.0.1".parse().unwrap(), 5344, 4236);
+    #[tokio::test]
+    async fn test_progress_fn_set() {
+        let mut recipient = Recipient::new("::1".parse().unwrap(), 5344, 4236);
+        let test_value = Arc::new(Mutex::new(43));
 
-        let mut lol = 43;
-        recipient.set_progress_fn(Box::new(|_| {
-            lol += 1;
-        }));
+        {
+            let test_value_clone = test_value.clone();
+            recipient.set_progress_fn(Some(move |_progressing| {
+                *test_value_clone.lock().unwrap() += 1;
+            }));
+        }
 
-        let ttt = recipient.get_config();
-
-
+        recipient.config.progress_fn.unwrap().lock().unwrap()(Progressing::Done);
+        assert_eq!(*test_value.lock().unwrap(), 44);
     }
 }

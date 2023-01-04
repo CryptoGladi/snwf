@@ -25,11 +25,11 @@ macro_rules! generate_config {
         #[doc = "**Generate by macros**"]
         #[derive(Clone)]
         pub struct $name<'a> {
-            pub addr: std::net::IpAddr,
-            pub port_for_send_files: u16,
-            pub port_for_handshake: u16,
-            pub timeout: std::time::Duration,
-            pub progress_fn: Option<&'a crate::common::alias::ProgressFn<'a>>,
+            pub(crate) addr: std::net::IpAddr,
+            pub(crate) port_for_send_files: u16,
+            pub(crate) port_for_handshake: u16,
+            pub(crate) timeout: std::time::Duration,
+            pub(crate) progress_fn: Option<crate::common::alias::ProgressFn<'a>>,
         }
 
         impl std::fmt::Debug for $name<'_> {

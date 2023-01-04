@@ -49,7 +49,7 @@ impl<'a> UdtSender<'a> for Sender<'a> {
         );
 
         let (mut udt, mut socket_for_handshake) = detail::connect_for_sender(&config).await?;
-        raw::send_file(&mut udt, path, &mut socket_for_handshake, Some(config), 0).await?;
+        raw::send_file(&mut udt, path, &mut socket_for_handshake, &Some(config), 0).await?;
 
         Ok(())
     }
@@ -71,7 +71,7 @@ impl<'a> UdtSender<'a> for Sender<'a> {
                 &mut udt,
                 path,
                 &mut socket_for_handshake,
-                Some(config.clone()),
+                &Some(config.clone()),
                 number_file as u64,
             )
             .await?;
@@ -119,7 +119,7 @@ impl<'a> UdtRecipient<'a> for Recipient<'a> {
         .map_err(UdtError::Accept)?;
         debug!("accepted connection from {}", addr);
 
-        raw::recv_file(&mut connection, &mut tcp_handshake, output).await?;
+        raw::recv_file(&mut connection, &mut tcp_handshake, output, &Some(config), 0).await?;
 
         Ok(())
     }
@@ -127,57 +127,66 @@ impl<'a> UdtRecipient<'a> for Recipient<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::{sync::{Mutex, Arc}, cell::RefCell};
     use super::*;
     use crate::common::{get_hasher, Progressing};
+    use std::{
+        cell::RefCell,
+        sync::{Arc, Mutex},
+    };
 
     #[tokio::test]
     async fn send_and_recv_udt() {
         crate::init_logger_for_test();
 
-        let mut run_progressing_sender_yield = Arc::new(Mutex::new(false));
-        let mut run_progressing_sender_done = false;
-        let mut run_progressing_recipient_yield = false;
-        let mut run_progressing_recipient_done = false; // TODO
+        let run_progressing_sender_yield = Arc::new(Mutex::new(false));
+        let run_progressing_sender_done = Arc::new(Mutex::new(false));
+        let run_progressing_recipient_yield = Arc::new(Mutex::new(false));
+        let run_progressing_recipient_done = Arc::new(Mutex::new(false));
 
         let (temp_dir, path_input) = file_hashing::fs::extra::generate_random_file(4352);
         let path_output = temp_dir.join("tess_file.txt");
 
         let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 4324, 6343);
 
-        
-        sender.set_progress_fn(Box::new(|progressing| {
-            debug!("progressing sender: {:?}", progressing);
+        {
+            let run_progressing_sender_yield_clone = run_progressing_sender_yield.clone();
+            let run_progressing_sender_done_clone = run_progressing_sender_done.clone();
 
-            /* 
-            match progressing {
-                Progressing::Yield {
-                    done_files: _,
-                    total_bytes: _,
-                    done_bytes: _,
-                } => *run_progressing_sender_yield_clone = true,
-                Progressing::Done => run_progressing_sender_done = true,
-            }
-            */
-        }));
-        
-        
+            sender.set_progress_fn(Some(move |progressing| {
+                debug!("progressing sender: {:?}", progressing);
+
+                match progressing {
+                    Progressing::Yield {
+                        done_files: _,
+                        total_bytes: _,
+                        done_bytes: _,
+                    } => *run_progressing_sender_yield_clone.lock().unwrap() = true,
+                    Progressing::Done => *run_progressing_sender_done_clone.lock().unwrap() = true,
+                }
+            }));
+        }
 
         let mut recipient = Recipient::new("::0".parse().unwrap(), 4324, 6343);
-        recipient.set_progress_fn(Box::new(|progressing| {
-            debug!("progressing recipient: {:?}", progressing);
 
-            /* 
-            match progressing {
-                Progressing::Yield {
-                    done_files: _,
-                    total_bytes: _,
-                    done_bytes: _,
-                } => run_progressing_recipient_yield = true,
-                Progressing::Done => run_progressing_recipient_done = true,
-            }
-            */
-        }));
+        {
+            let run_progressing_recipient_yield_clone = run_progressing_recipient_yield.clone();
+            let run_progressing_recipient_done_clone = run_progressing_recipient_done.clone();
+
+            recipient.set_progress_fn(Some(move |progressing| {
+                debug!("progressing recipient: {:?}", progressing);
+
+                match progressing {
+                    Progressing::Yield {
+                        done_files: _,
+                        total_bytes: _,
+                        done_bytes: _,
+                    } => *run_progressing_recipient_yield_clone.lock().unwrap() = true,
+                    Progressing::Done => {
+                        *run_progressing_recipient_done_clone.lock().unwrap() = true
+                    }
+                }
+            }));
+        }
 
         let (recv, send) = tokio::join!(
             recipient.udt_recv_file(path_output.as_path()),
@@ -190,19 +199,15 @@ mod tests {
         let hash_input = file_hashing::get_hash_file(path_input, &mut get_hasher()).unwrap();
         let hash_output = file_hashing::get_hash_file(path_output, &mut get_hasher()).unwrap();
 
-        //assert_eq!(run_progressing_recipient_done, true);
-
-        /* 
         assert_eq!(
             (
                 hash_input,
-                (*run_progressing_sender_yield.borrow()
-                    && run_progressing_sender_done
-                    && run_progressing_recipient_yield
-                    && run_progressing_recipient_done)
+                (*run_progressing_sender_yield.lock().unwrap()
+                    && *run_progressing_sender_done.lock().unwrap()
+                    && *run_progressing_recipient_yield.lock().unwrap()
+                    && *run_progressing_recipient_done.lock().unwrap())
             ),
             (hash_output, true)
-        )
-        */
+        );
     }
 }
