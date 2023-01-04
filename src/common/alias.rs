@@ -13,14 +13,4 @@ pub enum Progressing {
     Done,
 }
 
-pub trait ProgressFnT: FnMut(Progressing) {}
-
-impl<F> ProgressFnT for F where F: FnMut(Progressing) {}
-
-impl std::fmt::Debug for dyn ProgressFnT {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ProgressFn")
-    }
-}
-
-pub type ProgressFn<'a> = Arc<Mutex<dyn ProgressFnT + 'a>>;
+pub type ProgressFn<'a> = Arc<Mutex<Box<dyn FnMut(Progressing) + 'a>>>;

@@ -29,7 +29,7 @@ macro_rules! generate_config {
             pub port_for_send_files: u16,
             pub port_for_handshake: u16,
             pub timeout: std::time::Duration,
-            pub progress_fn: Option<crate::common::alias::ProgressFn<'a>>,
+            pub progress_fn: Option<&'a crate::common::alias::ProgressFn<'a>>,
         }
 
         impl std::fmt::Debug for $name<'_> {
