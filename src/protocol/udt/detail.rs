@@ -5,7 +5,7 @@ use tokio::net::TcpStream;
 use tokio_udt::UdtConnection;
 
 pub(crate) async fn connect_for_sender(
-    config: &ConfigSender,
+    config: &ConfigSender<'_>,
 ) -> Result<(UdtConnection, TcpStream), UdtError> {
     debug!("run join_connect for udt");
 

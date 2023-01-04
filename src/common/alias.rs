@@ -23,4 +23,4 @@ impl std::fmt::Debug for dyn ProgressFnT {
     }
 }
 
-pub type ProgressFn = Arc<Mutex<Box<dyn ProgressFnT>>>;
+pub type ProgressFn<'a> = Arc<Mutex<dyn ProgressFnT + 'a>>;

@@ -24,11 +24,11 @@ fn run_progress_fn(config: &Option<ConfigSender>, progressing: Progressing) {
     }
 }
 
-pub(crate) async fn send_file<P>(
+pub(crate) async fn send_file<'a, P>(
     udt_connection: &mut UdtConnection,
     path: P,
     handshake_socket: &mut TcpStream,
-    config: Option<ConfigSender>,
+    config: Option<ConfigSender<'_>>,
     number_file: u64,
 ) -> Result<(), UdtError>
 where

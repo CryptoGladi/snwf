@@ -23,13 +23,26 @@ macro_rules! generate_config {
         #[doc = "`]\n"]
         #[doc = "# Warning!\n"]
         #[doc = "**Generate by macros**"]
-        #[derive(Debug, Clone)]
-        pub struct $name {
-            pub(crate) addr: std::net::IpAddr,
-            pub(crate) port_for_send_files: u16,
-            pub(crate) port_for_handshake: u16,
-            pub(crate) timeout: std::time::Duration,
-            pub(crate) progress_fn: Option<crate::common::alias::ProgressFn>,
+        #[derive(Clone)]
+        pub struct $name<'a> {
+            pub addr: std::net::IpAddr,
+            pub port_for_send_files: u16,
+            pub port_for_handshake: u16,
+            pub timeout: std::time::Duration,
+            pub progress_fn: Option<crate::common::alias::ProgressFn<'a>>,
+        }
+
+        impl std::fmt::Debug for $name<'_> {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                //write!(f, " Hi: {}", self.id)
+                f.debug_struct(stringify!($name))
+                    .field("addr", &self.addr)
+                    .field("port_for_send_files", &self.port_for_send_files)
+                    .field("port_for_handshake", &self.port_for_handshake)
+                    .field("timeout", &self.timeout)
+                    .field("progress_fn: is_none()", &self.progress_fn.is_none())
+                    .finish()
+            }
         }
     };
 }
@@ -66,13 +79,3 @@ macro_rules! generate_new_for_config {
 }
 
 pub(crate) use generate_new_for_config;
-
-macro_rules! generate_set_progress_fn_for_config {
-    () => {
-        pub fn set_progress_fn(&mut self, progress_fn: Box<dyn crate::common::alias::ProgressFnT>) {
-            self.config.progress_fn = Some(std::sync::Arc::new(std::sync::Mutex::new(progress_fn)));
-        }
-    };
-}
-
-pub(crate) use generate_set_progress_fn_for_config;
