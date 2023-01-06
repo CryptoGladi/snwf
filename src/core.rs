@@ -1,7 +1,8 @@
 //! Module for **core** object
 
 use crate::common::Progressing;
-use std::{net::IpAddr, time::Duration};
+use async_trait::async_trait;
+use std::{net::IpAddr, path::Path, time::Duration};
 
 /// Trait for config
 ///
@@ -23,4 +24,11 @@ pub trait CoreConfig {
     ///
     /// Callback to check the progress of the operation
     fn run_progress_fn(&self, progressing: Progressing);
+}
+
+#[async_trait]
+pub trait Transport<Error> {
+    async fn recv_file<P>(&mut self, output: P) -> Result<(), Error>
+    where
+        P: AsRef<Path> + Send + Copy + Sync;
 }

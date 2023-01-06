@@ -2,6 +2,7 @@
 
 use super::UdtError;
 use crate::{
+    core::Transport,
     prelude::*,
     protocol::udt::{detail, error::assert_udt, raw},
 };
@@ -30,6 +31,19 @@ pub trait UdtSender<'a>: CoreSender<'a> {
     where
         P: AsRef<Path> + Send + Copy + Sync + Debug;
 }
+
+/* TODO Как сделать impl если у меня нет структуры?
+    //  Создать специальную структуру для Transport?
+
+#[async_trait(?Send)]
+impl<'a> Transport<UdtError> for dyn CoreSender<'a> {
+    async fn recv_file<P>(&mut self, output: P) -> Result<(), UdtError>
+    where
+        P: AsRef<Path> + Send + Copy + Sync {
+            Ok(())
+    }
+}
+*/
 
 #[async_trait(?Send)]
 impl<'a> UdtSender<'a> for Sender<'a> {

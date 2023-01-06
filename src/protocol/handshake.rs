@@ -68,12 +68,6 @@ fn get_file_name_from_as_ref_path(path: impl AsRef<Path>) -> String {
         .to_string()
 }
 
-fn handshake_required(socket: &mut TcpStream) -> bool {
-    socket.write_all(b"handshake_required?");
-    //socket.read_buf(buf);
-    todo!()
-}
-
 pub(crate) async fn send_handshake_from_file<P>(
     path: P,
     socket: &mut TcpStream,
