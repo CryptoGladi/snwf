@@ -2,7 +2,10 @@
 
 use super::UdtError;
 use crate::{
-    common::{get_hasher, timeout, Progressing},
+    common::{
+        get_hasher, timeout, Progressing, DEFAULT_BUFFER_SIZE_FOR_FILE as FBUFFER_SIZE,
+        DEFAULT_BUFFER_SIZE_FOR_NETWORK as NBUFFER_SIZE,
+    },
     core::CoreConfig,
     prelude::{ConfigRecipient, ConfigSender},
     protocol::handshake::{recv_handshake_from_address, send_handshake_from_file, Handshake},
@@ -37,7 +40,7 @@ where
     let mut reader = BufReader::new(file);
     let mut done_bytes = 0;
 
-    let mut buf = vec![0u8; 4096];
+    let mut buf = vec![0u8; FBUFFER_SIZE];
     loop {
         let len = reader.read(&mut buf).await.map_err(UdtError::FileIO)?;
 
@@ -94,7 +97,7 @@ where
             .map_err(UdtError::FileIO)?,
     );
 
-    let mut buf = vec![0u8; 4096];
+    let mut buf = vec![0u8; NBUFFER_SIZE];
     let mut total_bytes_for_send = handshake.size;
     let mut done_bytes = 0;
 

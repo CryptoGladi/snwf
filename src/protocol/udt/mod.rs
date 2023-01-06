@@ -130,9 +130,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn send_and_recv_with_original_name_udt() {
+    async fn send_and_recv_udt_with_original_name() {
+        crate::init_logger_for_test();
+
         let (_temp_dir, path_input) = file_hashing::fs::extra::generate_random_file(4352);
         let (output_dir, _path_input) = file_hashing::fs::extra::generate_random_file(1);
+        debug!("done generate test files");
 
         let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 3124, 5143);
         let mut recipient = Recipient::new("::0".parse().unwrap(), 3124, 5143);

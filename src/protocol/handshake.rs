@@ -9,7 +9,7 @@
 //!
 //! **The algorithm of work may differ from the type of [`crate::protocol`]!**
 
-use crate::common::{get_hasher, timeout};
+use crate::common::{get_hasher, timeout, DEFAULT_BUFFER_SIZE_FOR_NETWORK};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -68,6 +68,12 @@ fn get_file_name_from_as_ref_path(path: impl AsRef<Path>) -> String {
         .to_string()
 }
 
+fn handshake_required(socket: &mut TcpStream) -> bool {
+    socket.write_all(b"handshake_required?");
+    //socket.read_buf(buf);
+    todo!()
+}
+
 pub(crate) async fn send_handshake_from_file<P>(
     path: P,
     socket: &mut TcpStream,
@@ -75,7 +81,7 @@ pub(crate) async fn send_handshake_from_file<P>(
 where
     P: AsRef<Path> + Sync + Copy,
 {
-    assert_handshake!(path.as_ref().is_file(), "path must must be a file");
+    assert_handshake!(path.as_ref().is_file(), "path must be a file");
 
     let mut hasher = get_hasher();
     let hash = file_hashing::get_hash_file(path, &mut hasher)?;
@@ -87,6 +93,14 @@ where
     };
 
     let json = serde_json::to_string(&handshake)?;
+
+    // json >= DEFAULT_BUFFER_SIZE_FOR_NETWORK - is error
+    assert_handshake!(
+        DEFAULT_BUFFER_SIZE_FOR_NETWORK.cmp(&json.len()).is_ge(),
+        "Buffer overflow. json size: {}",
+        json.len()
+    );
+
     timeout!(socket.write_all(json.to_string().as_bytes()), |_| {
         HandshakeError::TimeoutExpired
     })??;
@@ -101,7 +115,7 @@ pub(crate) async fn recv_handshake_from_address(
     let (mut client, addr) = timeout!(listener.accept(), |_| HandshakeError::TimeoutExpired)??;
     debug!("Client for recv handshake: addr {}", addr);
 
-    let mut json = Vec::with_capacity(4096);
+    let mut json = Vec::with_capacity(DEFAULT_BUFFER_SIZE_FOR_NETWORK);
     timeout!(client.read_buf(&mut json), |_| {
         HandshakeError::TimeoutExpired
     })??;

@@ -16,7 +16,7 @@ serde_json = "1"
 thiserror = "1"
 tokio = { version = "1", features = [ "io-std", "io-util", "fs" ] }
 tokio-udt = { version = "0.1.0-alpha.8", optional = true }
-file-hashing = "0.1"
+file-hashing = { version = "0.1", default-features = false }
 blake2 = "0.10"
 fast_rsync = { version = "0.1", optional = true }
 
@@ -24,6 +24,7 @@ fast_rsync = { version = "0.1", optional = true }
 assert_fs = "1.0.10"
 env_logger = "0.10.0"
 tokio = { version = "1", features = [ "full" ] }
+file-hashing = "0.1"
 
 [profile.dev]
 debug = 2
