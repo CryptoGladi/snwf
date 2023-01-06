@@ -35,19 +35,14 @@ impl<'a> CoreRecipient<'a> for Recipient<'a> {
 
     /// Set ['ProgressFnT']
     fn set_progress_fn(&mut self, progress_fn: Option<impl FnMut(Progressing) + 'a>) {
-        self.config.progress_fn = if let Some(progress_fn) = progress_fn {
-            Some(Arc::new(Mutex::new(Box::new(progress_fn))))
-        } else {
-            None
-        }
+        self.config.progress_fn = progress_fn
+            .map(|i| -> crate::common::alias::ProgressFn { Arc::new(Mutex::new(Box::new(i))) });
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::udt::*;
-    use std::path::Path;
 
     #[tokio::test]
     async fn test_progress_fn_set() {

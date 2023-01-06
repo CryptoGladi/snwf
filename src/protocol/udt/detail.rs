@@ -1,16 +1,19 @@
 //! More detailed functions for [udt](crate::protocol::udt)
 
 use super::UdtError;
-use crate::{common::timeout, prelude::ConfigSender};
+use crate::{
+    common::timeout,
+    prelude::{ConfigRecipient, ConfigSender},
+};
 use log::debug;
-use tokio::net::TcpStream;
-use tokio_udt::UdtConnection;
+use tokio::net::{TcpListener, TcpStream};
+use tokio_udt::{UdtConnection, UdtListener};
 
 /// Make all connections for [Sender](crate::sender::Sender)
-pub(crate) async fn connect_for_sender(
+pub(crate) async fn all_connect_for_sender(
     config: &ConfigSender<'_>,
 ) -> Result<(UdtConnection, TcpStream), UdtError> {
-    debug!("run join_connect for udt");
+    debug!("run all_connect_for_sender for udt. Config: {:?}", config);
 
     let udt_connection = timeout!(
         UdtConnection::connect((config.addr, config.port_for_send_files), None),
@@ -29,4 +32,22 @@ pub(crate) async fn connect_for_sender(
     debug!("done socket handshake connect");
 
     Ok((udt_connection, socket_for_handshake))
+}
+
+pub(crate) async fn all_bind_for_recipient(
+    config: &ConfigRecipient<'_>,
+) -> Result<(UdtListener, TcpListener), UdtError> {
+    debug!("run all_bind_for_recipient for udt. Config: {:?}", config);
+
+    let udt_listener = UdtListener::bind((config.addr, config.port_for_send_files).into(), None)
+        .await
+        .map_err(UdtError::Bind)?;
+    debug!("done socket udt bind");
+
+    let tcp_handshake = TcpListener::bind((config.addr, config.port_for_handshake))
+        .await
+        .map_err(UdtError::Bind)?;
+    debug!("done socket handshake bind");
+
+    Ok((udt_listener, tcp_handshake))
 }

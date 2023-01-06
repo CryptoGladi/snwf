@@ -50,8 +50,32 @@ macro_rules! generate_config {
                     .field("port_for_send_files", &self.port_for_send_files)
                     .field("port_for_handshake", &self.port_for_handshake)
                     .field("timeout", &self.timeout)
-                    .field("progress_fn: is_none()", &self.progress_fn.is_none())
+                    .field("progress_fn.is_none()", &self.progress_fn.is_none())
                     .finish()
+            }
+        }
+
+        impl crate::core::CoreConfig for $name<'_> {
+            fn get_addr(&self) -> std::net::IpAddr {
+                self.addr
+            }
+
+            fn get_port_for_send_files(&self) -> u16 {
+                self.port_for_send_files
+            }
+
+            fn get_port_for_handshake(&self) -> u16 {
+                self.port_for_handshake
+            }
+
+            fn get_timeout(&self) -> std::time::Duration {
+                self.timeout
+            }
+
+            fn run_progress_fn(&self, progressing: Progressing) {
+                if let Some(progress_fn) = self.progress_fn.clone() {
+                    progress_fn.lock().unwrap()(progressing);
+                }
             }
         }
     };
@@ -66,8 +90,8 @@ macro_rules! generate_new_for_config {
         #[doc = stringify!(Self)]
         #[doc = "`]\n"]
         #[doc = "* `addr` - IP address for bind or connect.\n"]
-        #[doc = "* `port_for_send_files` - Port for sending files. Uses this port only [`crate::protocol`].\n"]
-        #[doc = "* `port_for_handshake` - Handshake port. The [`crate::protocol`] does not use it.\n"]
+        #[doc = "* `port_for_send_files` - port for sending files. Uses this port only [`crate::protocol`].\n"]
+        #[doc = "* `port_for_handshake` - handshake port. The [`crate::protocol`] does not use it.\n"]
         #[doc = "# Warning!\n"]
         #[doc = "**Generate by macros**"]
         pub fn new(

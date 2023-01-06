@@ -4,19 +4,21 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["udt"]
+default = ["udt", "rsync"]
 udt = ["dep:tokio-udt"]
+rsync = ["dep:fast_rsync"]
 
 [dependencies]
 async-trait = "0.1"
 log = "0.4"
-serde = { version = "1.0.150", features = ["derive"] }
-serde_json = "1.0.89"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 thiserror = "1"
 tokio = { version = "1", features = [ "io-std", "io-util", "fs" ] }
 tokio-udt = { version = "0.1.0-alpha.8", optional = true }
 file-hashing = "0.1"
 blake2 = "0.10"
+fast_rsync = { version = "0.1", optional = true }
 
 [dev-dependencies]
 assert_fs = "1.0.10"

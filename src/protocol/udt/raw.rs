@@ -3,10 +3,10 @@
 use super::UdtError;
 use crate::{
     common::{get_hasher, timeout, Progressing},
-    prelude::{ConfigSender, ConfigRecipient},
-    protocol::handshake::{recv_handshake_from_address, send_handshake_from_file},
+    core::CoreConfig,
+    prelude::{ConfigRecipient, ConfigSender},
+    protocol::handshake::{recv_handshake_from_address, send_handshake_from_file, Handshake},
 };
-use core::num;
 use log::debug;
 use std::path::Path;
 use tokio::{
@@ -16,19 +16,9 @@ use tokio::{
 };
 use tokio_udt::UdtConnection;
 
-fn run_progress_fn_for_sender(config: &Option<ConfigSender>, progressing: Progressing) {
+fn run_progress_fn(config: &Option<impl CoreConfig>, progressing: Progressing) {
     if let Some(config) = config {
-        if let Some(progress_fn) = config.progress_fn.clone() {
-            progress_fn.lock().unwrap()(progressing);
-        }
-    }
-}
-
-fn run_progress_fn_for_recipient(config: &Option<ConfigRecipient>, progressing: Progressing) {
-    if let Some(config) = config {
-        if let Some(progress_fn) = config.progress_fn.clone() {
-            progress_fn.lock().unwrap()(progressing);
-        }
+        config.run_progress_fn(progressing);
     }
 }
 
@@ -61,8 +51,8 @@ where
         .map_err(UdtError::FileIO)?;
 
         done_bytes += len;
-        run_progress_fn_for_sender(
-            &config,
+        run_progress_fn(
+            config,
             Progressing::Yield {
                 done_files: number_file,
                 total_bytes: handshake.size,
@@ -71,7 +61,7 @@ where
         );
     }
 
-    run_progress_fn_for_sender(config, Progressing::Done);
+    run_progress_fn(config, Progressing::Done);
     Ok(())
 }
 
@@ -81,6 +71,7 @@ pub(crate) async fn recv_file<P>(
     path: P,
     config: &Option<ConfigRecipient<'_>>,
     number_file: u64,
+    handshake: Option<Handshake>,
 ) -> Result<(), UdtError>
 where
     P: AsRef<Path> + Sync + Copy,
@@ -88,7 +79,12 @@ where
     // Recv file
     debug!("raw_recv_file. Getting file");
 
-    let handshake = recv_handshake_from_address(socket).await?;
+    let handshake = if let Some(handshake) = handshake {
+        handshake
+    } else {
+        recv_handshake_from_address(socket).await?
+    };
+
     let mut file = BufWriter::new(
         OpenOptions::new()
             .write(true)
@@ -111,7 +107,14 @@ where
 
         total_bytes_for_send -= len as u64;
         done_bytes += len;
-        run_progress_fn_for_recipient(config, Progressing::Yield { done_files: number_file, total_bytes: handshake.size, done_bytes: done_bytes as u64 });
+        run_progress_fn(
+            config,
+            Progressing::Yield {
+                done_files: number_file,
+                total_bytes: handshake.size,
+                done_bytes: done_bytes as u64,
+            },
+        );
 
         if total_bytes_for_send == 0 {
             break;
@@ -132,7 +135,7 @@ where
         return Err(UdtError::FileInvalid);
     }
 
-    run_progress_fn_for_recipient(config, Progressing::Done);
+    run_progress_fn(config, Progressing::Done);
     Ok(())
 }
 
@@ -185,7 +188,15 @@ mod tests {
             debug!("Accept client: {}", _addr);
 
             debug!("Running raw_recv_file...");
-            recv_file(&mut udt_connection, &mut tcp_listener, output, &None, 0).await?;
+            recv_file(
+                &mut udt_connection,
+                &mut tcp_listener,
+                output,
+                &None,
+                0,
+                None,
+            )
+            .await?;
             debug!("Done raw_recv_file!");
 
             Ok(())

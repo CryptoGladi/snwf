@@ -1,12 +1,12 @@
 //! Handshake - send information about a file
-//! 
+//!
 //! # Description
-//! 
+//!
 //! Handshake - used information about a file for check valid.
-//! 
+//!
 //! * Format: [json](https://github.com/serde-rs/json)
 //! * Max size: 512 (hash) + 300 (filename) + 60 (other information) = 872
-//! 
+//!
 //! **The algorithm of work may differ from the type of [`crate::protocol`]!**
 
 use crate::common::{get_hasher, timeout};
@@ -20,10 +20,12 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 
+/// Info about file
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct Handshake {
-    pub hash: String,
-    pub size: u64,
+    pub(crate) hash: String,
+    pub(crate) size: u64,
+    pub(crate) file_name: String,
 }
 
 #[derive(Debug, Error)]
@@ -36,6 +38,34 @@ pub enum HandshakeError {
 
     #[error("timeout expired")]
     TimeoutExpired,
+
+    #[error("wrong use function: {0}")]
+    Assert(String),
+}
+
+/// [`std::assert`], but for [`HandshakeError`]
+///
+/// # Example
+///
+/// See unit tests
+macro_rules! assert_handshake {
+    ($for_check:expr, $($message_error:tt)*) => {
+        if $for_check == false {
+            log::error!("assert handshake! message_error: {}", format!($($message_error)*));
+            return Err(crate::protocol::handshake::HandshakeError::Assert(format!($($message_error)*)));
+        }
+    };
+}
+
+pub(crate) use assert_handshake;
+
+fn get_file_name_from_as_ref_path(path: impl AsRef<Path>) -> String {
+    path.as_ref()
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
 }
 
 pub(crate) async fn send_handshake_from_file<P>(
@@ -45,10 +75,16 @@ pub(crate) async fn send_handshake_from_file<P>(
 where
     P: AsRef<Path> + Sync + Copy,
 {
+    assert_handshake!(path.as_ref().is_file(), "path must must be a file");
+
     let mut hasher = get_hasher();
     let hash = file_hashing::get_hash_file(path, &mut hasher)?;
-    let size = metadata(path).await?.len();
-    let handshake = Handshake { hash, size };
+    let metadata = metadata(path).await?;
+    let handshake = Handshake {
+        hash,
+        size: metadata.len(),
+        file_name: get_file_name_from_as_ref_path(path),
+    };
 
     let json = serde_json::to_string(&handshake)?;
     timeout!(socket.write_all(json.to_string().as_bytes()), |_| {
@@ -118,10 +154,22 @@ mod tests {
             handshake,
             Handshake {
                 hash: hash_from_test_file,
-                size: 1000
+                size: 1000,
+                file_name: get_file_name_from_as_ref_path(path_to_file)
             }
         );
     }
-}
 
-// TODO: DOC
+    #[test]
+    fn macro_assert_handshake() {
+        let fn_test = || -> Result<(), HandshakeError> {
+            assert_handshake!(false, "test message: {}", "test value");
+            Ok(())
+        };
+
+        match fn_test().err().unwrap() {
+            HandshakeError::Assert(message) => assert_eq!(message, "test message: test value"),
+            _ => panic!("fn_test() != UdtError::Assert"),
+        }
+    }
+}

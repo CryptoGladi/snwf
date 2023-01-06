@@ -10,7 +10,7 @@
 //!
 //! # Features
 //!
-//! * **udt** - [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) protocol
+//! * **udt** - [udt](crate::protocol::udt) protocol
 //! * [Callback function](crate::common::alias::Progressing)
 //! * Use `#![forbid(unsafe_code)]`
 //!
@@ -21,13 +21,24 @@
 //! ```no_run
 //! use snwf::prelude::*;
 //! use std::path::Path;
+//! use std::sync::{Mutex, Arc};
 //!
 //! #[tokio::main]
 //! async fn main() {
 //!    let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 4324, 6343);
 //!    let mut recipient = Recipient::new("::0".parse().unwrap(), 4324, 6343);
 //!
-//!    sender.set_progress_fn(Some(|progressing| println!("progress info: {:?}", progressing) ));
+//!    let random_variable = Arc::new(Mutex::new(false));
+//!
+//!    {
+//!    let random_variable_clone = random_variable.clone();
+//!
+//!    sender.set_progress_fn(Some(move |progressing|
+//!         {
+//!             println!("progress info: {:?}", progressing);
+//!             *random_variable_clone.lock().unwrap() = true;
+//!         }));
+//!    }
 //!    
 //!    let (recv, send) = tokio::join!(
 //!        recipient.udt_recv_file(Path::new("other_file.txt")),
@@ -36,17 +47,20 @@
 //!    
 //!    send.unwrap();
 //!    recv.unwrap();
+//!
+//!    assert_eq!(*random_variable.lock().unwrap(), true);
 //! }
 //! ```
 //!
 //! * [`sender::Sender`] - only send files
 //! * [`recipient::Recipient`] - Only receives files
-//! 
+//!
 //! snwf by [CryptoGladi](https://github.com/CryptoGladi)
 
 #![forbid(unsafe_code)]
 
 pub mod common;
+pub mod core;
 pub mod prelude;
 pub mod protocol;
 pub mod recipient; // or client

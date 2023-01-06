@@ -4,17 +4,17 @@ use std::sync::{Arc, Mutex};
 
 /// Callback to check the progress of the operation
 ///
-/// # Example 
-/// 
+/// # Example
+///
 /// ```
 /// # use snwf::prelude::*;
 /// #
 /// let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 4324, 6343);
-/// sender.set_progress_fn(Some(|_progressing| {
+/// sender.set_progress_fn(Some(|_progressing| { // add move for variable
 ///     // Useful user code
 /// }));
 /// ```
-/// 
+///
 /// P.S. **DON'T SHOW ERROR!**
 #[derive(Debug)]
 pub enum Progressing {
@@ -27,13 +27,13 @@ pub enum Progressing {
         total_bytes: u64,
 
         /// Bytes received from a single file.
-        /// 
+        ///
         /// That is, the file has not yet been completely sent or transferred
         done_bytes: u64,
     },
 
     /// Operation is done!
-    /// 
+    ///
     /// P.S. **DON'T SHOW ERROR!**
     Done,
 }
