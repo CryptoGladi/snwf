@@ -82,6 +82,7 @@ where
     // Recv file
     debug!("raw_recv_file. Getting file");
 
+    // TODO handshake.unwrap_or(recv_handshake_from_address(socket).await?);
     let handshake = if let Some(handshake) = handshake {
         handshake
     } else {
