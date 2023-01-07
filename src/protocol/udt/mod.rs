@@ -36,6 +36,7 @@
 mod detail;
 pub mod error;
 mod raw;
+pub mod transport;
 pub mod udt_recipient;
 pub mod udt_sender;
 

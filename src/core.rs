@@ -1,8 +1,8 @@
 //! Module for **core** object
 
-use crate::common::Progressing;
+use crate::{common::Progressing, prelude::ConfigRecipient};
 use async_trait::async_trait;
-use std::{net::IpAddr, path::Path, time::Duration};
+use std::{net::{IpAddr, ToSocketAddrs, SocketAddr}, path::Path, time::Duration};
 
 /// Trait for config
 ///
@@ -26,9 +26,9 @@ pub trait CoreConfig {
     fn run_progress_fn(&self, progressing: Progressing);
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 pub trait Transport<Error> {
-    async fn recv_file<P>(&mut self, output: P) -> Result<(), Error>
+    async fn recv_file<P>(&mut self, config: ConfigRecipient, output: P) -> Result<(), Error>
     where
         P: AsRef<Path> + Send + Copy + Sync;
 }
