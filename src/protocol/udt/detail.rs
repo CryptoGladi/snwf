@@ -1,4 +1,4 @@
-//! More detailed functions for [udt](crate::protocol::udt)
+//! More detailed functions for [`udt`](crate::protocol::udt)
 
 use super::UdtError;
 use crate::{
@@ -9,7 +9,7 @@ use log::debug;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_udt::{UdtConnection, UdtListener};
 
-/// Make all connections for [Sender](crate::sender::Sender)
+/// Make all connections for [`Sender`](crate::sender::Sender)
 pub(crate) async fn all_connect_for_sender(
     config: &ConfigSender<'_>,
 ) -> Result<(UdtConnection, TcpStream), UdtError> {
@@ -34,6 +34,7 @@ pub(crate) async fn all_connect_for_sender(
     Ok((udt_connection, socket_for_handshake))
 }
 
+/// Make bind connections for [`Recipient`](crate::recipient::Recipient)
 pub(crate) async fn all_bind_for_recipient(
     config: &ConfigRecipient<'_>,
 ) -> Result<(UdtListener, TcpListener), UdtError> {

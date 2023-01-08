@@ -3,10 +3,10 @@
 use super::UdtError;
 use crate::{
     common::{
-        get_hasher, timeout, Progressing, DEFAULT_BUFFER_SIZE_FOR_FILE as FBUFFER_SIZE,
+        get_hasher, timeout, DEFAULT_BUFFER_SIZE_FOR_FILE as FBUFFER_SIZE,
         DEFAULT_BUFFER_SIZE_FOR_NETWORK as NBUFFER_SIZE,
     },
-    core::CoreConfig,
+    core::*,
     prelude::{ConfigRecipient, ConfigSender},
     protocol::handshake::{recv_handshake_from_address, send_handshake_from_file, Handshake},
 };
@@ -19,6 +19,7 @@ use tokio::{
 };
 use tokio_udt::UdtConnection;
 
+#[inline]
 fn run_progress_fn(config: &Option<impl CoreConfig>, progressing: Progressing) {
     if let Some(config) = config {
         config.run_progress_fn(progressing);
@@ -60,6 +61,7 @@ where
                 done_files: number_file,
                 total_bytes: handshake.size,
                 done_bytes: done_bytes as u64,
+                path_to_file: path.as_ref().to_path_buf(),
             },
         );
     }
@@ -117,6 +119,7 @@ where
                 done_files: number_file,
                 total_bytes: handshake.size,
                 done_bytes: done_bytes as u64,
+                path_to_file: path.as_ref().to_path_buf(),
             },
         );
 

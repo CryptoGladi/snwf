@@ -2,7 +2,6 @@
 
 use super::UdtError;
 use crate::{
-    core::Transport,
     prelude::*,
     protocol::udt::{detail, error::assert_udt, raw},
 };

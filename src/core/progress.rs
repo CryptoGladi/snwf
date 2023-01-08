@@ -1,6 +1,7 @@
-//! Useful alias
-
-use std::sync::{Arc, Mutex};
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 /// Callback to check the progress of the operation
 ///
@@ -30,6 +31,9 @@ pub enum Progressing {
         ///
         /// That is, the file has not yet been completely sent or transferred
         done_bytes: u64,
+
+        /// The path to the file that is involved in the work
+        path_to_file: PathBuf,
     },
 
     /// Operation is done!

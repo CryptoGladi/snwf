@@ -32,11 +32,15 @@
 //! 2. Running the udt implementation
 //!
 //! And so for **EVERY** file
+//!
+//! # What libraries to use
+//!
+//! * [`tokio-udt`](https://github.com/Distributed-EPFL/tokio-udt) - implementation udt for [tokio](https://tokio.rs/)
 
 mod detail;
 pub mod error;
 mod raw;
-pub mod transport;
+
 pub mod udt_recipient;
 pub mod udt_sender;
 
@@ -46,10 +50,7 @@ pub use udt_sender::UdtSender;
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        common::{get_hasher, Progressing},
-        prelude::*,
-    };
+    use crate::{common::get_hasher, core::*, prelude::*};
     use log::debug;
     use std::sync::{Arc, Mutex};
 
@@ -79,6 +80,7 @@ mod tests {
                         done_files: _,
                         total_bytes: _,
                         done_bytes: _,
+                        path_to_file: _,
                     } => *run_progressing_sender_yield_clone.lock().unwrap() = true,
                     Progressing::Done => *run_progressing_sender_done_clone.lock().unwrap() = true,
                 }
@@ -99,6 +101,7 @@ mod tests {
                         done_files: _,
                         total_bytes: _,
                         done_bytes: _,
+                        path_to_file: _,
                     } => *run_progressing_recipient_yield_clone.lock().unwrap() = true,
                     Progressing::Done => {
                         *run_progressing_recipient_done_clone.lock().unwrap() = true

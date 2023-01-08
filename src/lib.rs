@@ -11,7 +11,8 @@
 //! # Features
 //!
 //! * **udt** - [udt](crate::protocol::udt) protocol
-//! * [Callback function](crate::common::alias::Progressing)
+//! * **rsync** - [rsync](crate::protocol::rsync) for sync files
+//! * [Callback function](crate::core::Progressing)
 //! * Use `#![forbid(unsafe_code)]`
 //!
 //! # Example
@@ -52,8 +53,8 @@
 //! }
 //! ```
 //!
-//! * [`sender::Sender`] - only send files
-//! * [`recipient::Recipient`] - Only receives files
+//! * [`Sender`](crate::sender::Sender) - only send files
+//! * [`Recipient`](crate::recipient::Recipient) - only receives files
 //!
 //! snwf by [CryptoGladi](https://github.com/CryptoGladi)
 

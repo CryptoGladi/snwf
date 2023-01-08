@@ -1,4 +1,4 @@
-//! All error in [udt](crate::protocol::udt)
+//! All error in [`udt`](crate::protocol::udt)
 
 use crate::protocol::handshake::*;
 use thiserror::Error;
@@ -60,6 +60,7 @@ pub enum UdtError {
     #[error("timeout expired")]
     TimeoutExpired,
 
+    /// Wrong use function in [udt](crate::protocol::udt)
     #[error("wrong use function: {0}")]
     Assert(String),
 }

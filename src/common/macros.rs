@@ -15,7 +15,7 @@ macro_rules! timeout {
 
 pub(crate) use timeout;
 
-/// Generate config for [`crate::sender::Sender`] and [`crate::recipient::Recipient`]
+/// Generate config for [`Sender`](crate::sender::Sender) and [`Recipient`](crate::recipient::Recipient)
 macro_rules! generate_config {
     ($name:ident, $config_for:ident) => {
         #[doc = "Config for [`"]
@@ -39,7 +39,7 @@ macro_rules! generate_config {
 
             #[doc = "Callback to check the progress of the operation\n\n"]
             #[doc = "To change it, you need to call set_progress_fn"]
-            pub(crate) progress_fn: Option<crate::common::alias::ProgressFn<'a>>,
+            pub(crate) progress_fn: Option<crate::core::ProgressFn<'a>>,
         }
 
         impl std::fmt::Debug for $name<'_> {
@@ -56,22 +56,27 @@ macro_rules! generate_config {
         }
 
         impl crate::core::CoreConfig for $name<'_> {
+            #[inline]
             fn get_addr(&self) -> std::net::IpAddr {
                 self.addr
             }
 
+            #[inline]
             fn get_port_for_send_files(&self) -> u16 {
                 self.port_for_send_files
             }
 
+            #[inline]
             fn get_port_for_handshake(&self) -> u16 {
                 self.port_for_handshake
             }
 
+            #[inline]
             fn get_timeout(&self) -> std::time::Duration {
                 self.timeout
             }
 
+            #[inline]
             fn run_progress_fn(&self, progressing: Progressing) {
                 if let Some(progress_fn) = self.progress_fn.clone() {
                     progress_fn.lock().unwrap()(progressing);

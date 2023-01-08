@@ -6,7 +6,7 @@ edition = "2021"
 [features]
 default = ["udt", "rsync"]
 udt = ["dep:tokio-udt"]
-rsync = ["dep:fast_rsync"]
+rsync = ["dep:fast_rsync", "dep:tokio-udt"]
 
 [dependencies]
 async-trait = "0.1"

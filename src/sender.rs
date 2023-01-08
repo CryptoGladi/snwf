@@ -1,6 +1,7 @@
 //! Module for [`Sender`]
 
-use crate::common::{generate_config, generate_new_for_config, Progressing};
+use crate::common::{generate_config, generate_new_for_config};
+use crate::core::*;
 use std::sync::{Arc, Mutex};
 
 generate_config!(ConfigSender, Sender);
@@ -28,6 +29,7 @@ impl<'a> Sender<'a> {
 }
 
 impl<'a> CoreSender<'a> for Sender<'a> {
+    #[inline]
     /// Get [`ConfigSender`]
     fn get_config(&self) -> ConfigSender<'a> {
         self.config.clone()
@@ -35,8 +37,8 @@ impl<'a> CoreSender<'a> for Sender<'a> {
 
     /// Set ['ProgressFnT']
     fn set_progress_fn(&mut self, progress_fn: Option<impl FnMut(Progressing) + 'a>) {
-        self.config.progress_fn = progress_fn
-            .map(|i| -> crate::common::alias::ProgressFn { Arc::new(Mutex::new(Box::new(i))) });
+        self.config.progress_fn =
+            progress_fn.map(|i| -> ProgressFn { Arc::new(Mutex::new(Box::new(i))) });
     }
 }
 
