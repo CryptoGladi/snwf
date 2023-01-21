@@ -1,5 +1,6 @@
 //! Implementation of all protocols
 
+pub mod error;
 pub mod handshake;
 
 #[cfg(feature = "udt")]

@@ -8,7 +8,10 @@ use crate::{
     },
     core::*,
     prelude::{ConfigRecipient, ConfigSender},
-    protocol::handshake::{recv_handshake_from_address, send_handshake_from_file, Handshake},
+    protocol::{
+        error::ProtocolError,
+        handshake::{recv_handshake_from_address, send_handshake_from_file, Handshake},
+    },
 };
 use log::debug;
 use std::path::Path;
@@ -36,23 +39,30 @@ pub(crate) async fn send_file<'a, P>(
 where
     P: AsRef<Path> + Sync + Copy,
 {
-    let handshake = send_handshake_from_file(path, handshake_socket).await?;
-    let file = File::open(path).await.map_err(UdtError::FileIO)?;
+    let handshake = send_handshake_from_file(path, handshake_socket)
+        .await
+        .map_err(|e| UdtError::Protocol(ProtocolError::Handshake(e)))?;
+    let file = File::open(path)
+        .await
+        .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
     let mut reader = BufReader::new(file);
     let mut done_bytes = 0;
 
     let mut buf = vec![0u8; FBUFFER_SIZE];
     loop {
-        let len = reader.read(&mut buf).await.map_err(UdtError::FileIO)?;
+        let len = reader
+            .read(&mut buf)
+            .await
+            .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
 
         if len == 0 {
             break;
         }
 
         timeout!(udt_connection.send(&buf[0..len]), |_| {
-            UdtError::TimeoutExpired
+            UdtError::Protocol(ProtocolError::TimeoutExpired)
         })?
-        .map_err(UdtError::FileIO)?;
+        .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
 
         done_bytes += len;
         run_progress_fn(
@@ -81,14 +91,15 @@ pub(crate) async fn recv_file<P>(
 where
     P: AsRef<Path> + Sync + Copy,
 {
-    // Recv file
     debug!("raw_recv_file. Getting file");
 
     // unwrap_or() not working!
     let handshake = if let Some(handshake) = handshake {
         handshake
     } else {
-        recv_handshake_from_address(socket).await?
+        recv_handshake_from_address(socket)
+            .await
+            .map_err(|e| UdtError::Protocol(ProtocolError::Handshake(e)))?
     };
 
     let mut file = BufWriter::new(
@@ -97,7 +108,7 @@ where
             .create(true)
             .open(path)
             .await
-            .map_err(UdtError::FileIO)?,
+            .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?,
     );
 
     let mut buf = vec![0u8; NBUFFER_SIZE];
@@ -105,11 +116,14 @@ where
     let mut done_bytes = 0;
 
     loop {
-        let len = udt.recv(&mut buf).await.map_err(UdtError::ReceivingData)?;
+        let len = udt
+            .recv(&mut buf)
+            .await
+            .map_err(|e| UdtError::Protocol(ProtocolError::ReceivingData(e)))?;
 
         file.write_all(&buf[0..len])
             .await
-            .map_err(UdtError::FileIO)?;
+            .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
 
         total_bytes_for_send -= len as u64;
         done_bytes += len;
@@ -127,19 +141,22 @@ where
             break;
         }
     }
-    file.flush().await.map_err(UdtError::FileIO)?;
+    file.flush()
+        .await
+        .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
 
     // Check file
     debug!("raw_recv_file. Checking file");
     let mut hasher = get_hasher();
-    let hash = file_hashing::get_hash_file(path, &mut hasher).map_err(UdtError::FileIO)?;
+    let hash = file_hashing::get_hash_file(path, &mut hasher)
+        .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
 
     if hash != handshake.hash {
         debug!(
             "hash not valid! hash: {}; handshake.file_hash: {}",
             hash, handshake.hash
         );
-        return Err(UdtError::FileInvalid);
+        return Err(UdtError::Protocol(ProtocolError::FileInvalid));
     }
 
     run_progress_fn(config, Progressing::Done);
@@ -164,10 +181,10 @@ mod tests {
         ) -> Result<(), UdtError> {
             let mut udt = UdtConnection::connect(address_for_udt, None)
                 .await
-                .map_err(UdtError::Connect)?;
+                .map_err(|e| UdtError::Protocol(ProtocolError::Connect(e)))?;
             let mut tcp = TcpStream::connect(address_for_tcp)
                 .await
-                .map_err(UdtError::Connect)?;
+                .map_err(|e| UdtError::Protocol(ProtocolError::Connect(e)))?;
             debug!("Done all connect");
 
             debug!("Running raw_send_file...");
@@ -184,14 +201,16 @@ mod tests {
         ) -> Result<(), UdtError> {
             let udt_listener = UdtListener::bind(address_for_udt, None)
                 .await
-                .map_err(UdtError::Bind)?;
+                .map_err(|e| UdtError::Protocol(ProtocolError::Bind(e)))?;
             let mut tcp_listener = TcpListener::bind(address_for_tcp)
                 .await
-                .map_err(UdtError::Bind)?;
+                .map_err(|e| UdtError::Protocol(ProtocolError::Bind(e)))?;
             debug!("Done all bind!");
 
-            let (_addr, mut udt_connection) =
-                udt_listener.accept().await.map_err(UdtError::Accept)?;
+            let (_addr, mut udt_connection) = udt_listener
+                .accept()
+                .await
+                .map_err(|e| UdtError::Protocol(ProtocolError::Accept(e)))?;
             debug!("Accept client: {}", _addr);
 
             debug!("Running raw_recv_file...");

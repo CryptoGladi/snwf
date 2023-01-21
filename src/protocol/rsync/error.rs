@@ -1,16 +1,14 @@
+use crate::protocol::error::ProtocolError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RSyncError {
+    #[error("problem in protocol: {0}")]
+    Protocol(ProtocolError),
+
     /// Wrong use function in [`rsync`](crate::protocol::rsync)
     #[error("wrong use function: {0}")]
     Assert(String),
-
-    /// This error occurs when the files are not working properly
-    ///
-    /// For example: `You do not have permission to write to the file`
-    #[error("IO filesystem")]
-    FileIO(#[source] std::io::Error),
 }
 
 /// [`std::assert`], but for [`RSyncError`]
