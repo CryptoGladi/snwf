@@ -8,6 +8,7 @@ generate_config!(ConfigRecipient, Recipient);
 
 /// Core trait for [`Recipient`]
 pub trait CoreRecipient<'a> {
+    #[must_use]
     /// Get [`ConfigRecipient`]
     fn get_config(&self) -> ConfigRecipient<'a>;
 
@@ -29,7 +30,6 @@ impl Recipient<'static> {
 }
 
 impl<'a> CoreRecipient<'a> for Recipient<'a> {
-    #[inline]
     /// Get [`ConfigRecipient`]
     fn get_config(&self) -> ConfigRecipient<'a> {
         self.config.clone()

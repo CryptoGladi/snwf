@@ -56,27 +56,22 @@ macro_rules! generate_config {
         }
 
         impl crate::core::CoreConfig for $name<'_> {
-            #[inline]
             fn get_addr(&self) -> std::net::IpAddr {
                 self.addr
             }
 
-            #[inline]
             fn get_port_for_send_files(&self) -> u16 {
                 self.port_for_send_files
             }
 
-            #[inline]
             fn get_port_for_handshake(&self) -> u16 {
                 self.port_for_handshake
             }
 
-            #[inline]
             fn get_timeout(&self) -> std::time::Duration {
                 self.timeout
             }
 
-            #[inline]
             fn run_progress_fn(&self, progressing: Progressing) {
                 if let Some(progress_fn) = self.progress_fn.clone() {
                     progress_fn.lock().unwrap()(progressing);

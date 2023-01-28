@@ -22,7 +22,6 @@ use tokio::{
 };
 use tokio_udt::UdtConnection;
 
-#[inline]
 fn run_progress_fn(config: &Option<impl CoreConfig>, progressing: Progressing) {
     if let Some(config) = config {
         config.run_progress_fn(progressing);

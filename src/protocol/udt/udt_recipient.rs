@@ -127,6 +127,7 @@ impl<'a> UdtRecipient<'a> for Recipient<'a> {
         let handshake = recv_handshake_from_address(&mut tcp_handshake)
             .await
             .map_err(|e| UdtError::Protocol(ProtocolError::Handshake(e)))?;
+
         raw::recv_file(
             &mut connection,
             &mut tcp_handshake,

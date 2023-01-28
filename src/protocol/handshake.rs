@@ -59,7 +59,6 @@ macro_rules! assert_handshake {
 
 pub(crate) use assert_handshake;
 
-#[inline]
 fn get_file_name_from_as_ref_path(path: impl AsRef<Path>) -> String {
     path.as_ref()
         .file_name()

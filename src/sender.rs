@@ -8,6 +8,7 @@ generate_config!(ConfigSender, Sender);
 
 /// Core trait for [`Sender`]
 pub trait CoreSender<'a> {
+    #[must_use]
     /// Get [`ConfigSender`]
     fn get_config(&self) -> ConfigSender<'a>;
 
@@ -29,7 +30,6 @@ impl<'a> Sender<'a> {
 }
 
 impl<'a> CoreSender<'a> for Sender<'a> {
-    #[inline]
     /// Get [`ConfigSender`]
     fn get_config(&self) -> ConfigSender<'a> {
         self.config.clone()
@@ -48,17 +48,17 @@ mod tests {
 
     #[test]
     fn test_progress_fn_set() {
-        let mut recipient = Sender::new("127.0.0.1".parse().unwrap(), 5344, 4236);
+        let mut sender = Sender::new("127.0.0.1".parse().unwrap(), 5344, 4236);
         let test_value = Arc::new(Mutex::new(43));
 
         {
             let test_value_clone = test_value.clone();
-            recipient.set_progress_fn(Some(move |_progressing| {
+            sender.set_progress_fn(Some(move |_progressing| {
                 *test_value_clone.lock().unwrap() += 1;
             }));
         }
 
-        recipient.config.progress_fn.unwrap().lock().unwrap()(Progressing::Done);
+        sender.config.progress_fn.unwrap().lock().unwrap()(Progressing::Done);
         assert_eq!(*test_value.lock().unwrap(), 44);
     }
 }
