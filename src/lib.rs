@@ -59,7 +59,7 @@
 //! snwf by [CryptoGladi](https://github.com/CryptoGladi)
 
 #![forbid(unsafe_code)]
-#![forbid(unknown_crate_types)]
+#![warn(unused_lifetimes)]
 
 pub mod common;
 pub mod core;

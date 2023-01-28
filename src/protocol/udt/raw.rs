@@ -28,7 +28,7 @@ fn run_progress_fn(config: &Option<impl CoreConfig>, progressing: Progressing) {
     }
 }
 
-pub(crate) async fn send_file<'a, P>(
+pub(crate) async fn send_file<P>(
     udt_connection: &mut UdtConnection,
     path: P,
     handshake_socket: &mut TcpStream,
@@ -232,8 +232,8 @@ mod tests {
     async fn udt_raw() {
         crate::init_logger_for_test();
 
-        const ADDRESS_UDT: &'static str = "127.0.0.1:6432";
-        const ADDRESS_TCP: &'static str = "127.0.0.1:6424";
+        const ADDRESS_UDT: &str = "127.0.0.1:6432";
+        const ADDRESS_TCP: &str = "127.0.0.1:6424";
 
         let (temp_dir, input_path) = file_hashing::fs::extra::generate_random_file(3626);
         let output_path = temp_dir.join("tess.txt");
@@ -245,7 +245,7 @@ mod tests {
                 ADDRESS_TCP,
                 output_path.as_path()
             ),
-            detail::async_send(ADDRESS_UDT, ADDRESS_TCP, &input_path.path())
+            detail::async_send(ADDRESS_UDT, ADDRESS_TCP, input_path.path())
         );
 
         send.unwrap();

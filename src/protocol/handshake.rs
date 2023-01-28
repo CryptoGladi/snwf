@@ -134,7 +134,7 @@ mod tests {
         }
 
         pub(crate) async fn recv(listener: &mut TcpListener) -> Result<Handshake, HandshakeError> {
-            Ok(recv_handshake_from_address(listener).await?)
+            recv_handshake_from_address(listener).await
         }
     }
 
@@ -147,7 +147,7 @@ mod tests {
         let hash_from_test_file =
             file_hashing::get_hash_file(path_to_file.path(), &mut hasher).unwrap();
 
-        const ADDRESS: &'static str = "127.0.0.1:45254";
+        const ADDRESS: &str = "127.0.0.1:45254";
         let mut recv_socket = TcpListener::bind(ADDRESS).await.unwrap();
         let mut send_socket = TcpStream::connect(ADDRESS).await.unwrap();
 

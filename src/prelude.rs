@@ -1,5 +1,6 @@
 //! Prelude
 
+pub use crate::protocol::error::ProtocolError;
 pub use crate::recipient::*;
 pub use crate::sender::*;
 

@@ -1,15 +1,7 @@
-use super::{assert_rsync, RSyncError, DEFAULT_BLOCK_SIZE, DEFAULT_CRYPTO_HASH_SIZE};
-use crate::common::DEFAULT_BUFFER_SIZE_FOR_NETWORK;
+use super::{assert_rsync, RSyncError};
 use crate::prelude::{CoreSender, Sender};
-use crate::protocol::error::ProtocolError;
-use crate::protocol::handshake::send_handshake_from_file;
 use async_trait::async_trait;
-use fast_rsync::SignatureOptions;
-use log::debug;
 use std::path::Path;
-use tokio::fs::File;
-use tokio::io::AsyncReadExt;
-use tokio::net::TcpStream;
 
 #[async_trait(?Send)]
 pub trait RSyncSender<'a>: CoreSender<'a> {
@@ -24,6 +16,12 @@ impl<'a> RSyncSender<'a> for Sender<'a> {
     where
         P: AsRef<Path> + Send + Copy + Sync,
     {
-        todo!()
+        assert_rsync!(path.as_ref().is_file(), "path isn't file or not exists");
+
+        let config = self.get_config();
+
+        
+
+        Ok(())
     }
 }
