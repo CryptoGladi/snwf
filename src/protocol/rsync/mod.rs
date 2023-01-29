@@ -19,12 +19,7 @@
 
 pub mod constant;
 pub mod error;
+pub mod prelude;
 mod raw;
 pub mod rsync_recipient;
 pub mod rsync_sender;
-
-pub use constant::*;
-pub(crate) use error::assert_rsync;
-pub use error::RSyncError;
-pub use rsync_recipient::RSyncRecipient;
-pub use rsync_sender::RSyncSender;

@@ -39,14 +39,11 @@
 
 mod detail;
 pub mod error;
+pub mod prelude;
 mod raw;
 
 pub mod udt_recipient;
 pub mod udt_sender;
-
-pub use error::UdtError;
-pub use udt_recipient::UdtRecipient;
-pub use udt_sender::UdtSender;
 
 #[cfg(test)]
 mod tests {

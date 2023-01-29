@@ -1,6 +1,6 @@
 //! Implementation [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) for trait [`CoreRecipient`]
 
-use super::UdtError;
+use super::prelude::UdtError;
 use crate::{
     common::timeout,
     prelude::*,

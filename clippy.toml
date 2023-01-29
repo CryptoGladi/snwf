@@ -1,0 +1,7 @@
+disallowed-types = [
+    { path = "std::net::TcpStream", reason = "this library uses async" },
+    { path = "std::net::TcpListener", reason = "this library uses async" },
+    { path = "std::net::UdpSocket", reason = "this library uses async" },
+    { path = "std::collections::HashMap", reason = "little performance" },
+    { path = "std::collections::HashSet", reason = "little performance" },
+]

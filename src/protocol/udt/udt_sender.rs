@@ -1,6 +1,6 @@
 //! Implementation [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) for trait [`CoreSender`]
 
-use super::UdtError;
+use super::prelude::UdtError;
 use crate::{
     prelude::*,
     protocol::udt::{detail, error::assert_udt, raw},

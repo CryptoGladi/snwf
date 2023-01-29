@@ -1,6 +1,6 @@
 //! More detailed functions for [`udt`](crate::protocol::udt)
 
-use super::UdtError;
+use super::prelude::UdtError;
 use crate::{
     common::timeout,
     prelude::{ConfigRecipient, ConfigSender},

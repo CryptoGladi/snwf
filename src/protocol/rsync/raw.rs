@@ -1,18 +1,63 @@
-use crate::prelude::{ConfigRecipient, ProtocolError};
-use tokio::net::TcpListener;
-use tokio_udt::UdtListener;
-
-use super::RSyncError;
+use super::prelude::*;
+use crate::{
+    common::DEFAULT_BUFFER_SIZE_FOR_NETWORK,
+    prelude::{ConfigRecipient, ProtocolError},
+};
+use log::{debug, trace};
+use std::path::Path;
+use tokio::{fs::File, io::AsyncReadExt, net::TcpListener};
+use tokio_udt::{UdtConnection, UdtListener};
 
 pub(crate) async fn bind_all(
     config: &'_ ConfigRecipient<'_>,
 ) -> Result<(UdtListener, TcpListener), RSyncError> {
+    debug!("run bind_all for rsync");
+
     let udt_listener = UdtListener::bind((config.addr, config.port_for_handshake).into(), None)
         .await
         .map_err(|e| RSyncError::Protocol(ProtocolError::Bind(e)))?;
+    debug!("done bind udt_listener");
+
     let tcp_listener = TcpListener::bind((config.addr, config.port_for_handshake))
         .await
         .map_err(|e| RSyncError::Protocol(ProtocolError::Bind(e)))?;
+    debug!("done bind tcp_listener");
 
     Ok((udt_listener, tcp_listener))
+}
+
+pub(crate) async fn send_signature(
+    path: impl AsRef<Path>,
+    udt_connection: &UdtConnection,
+) -> Result<(), RSyncError> {
+    let mut storage = vec![0_u8; DEFAULT_BUFFER_SIZE_FOR_NETWORK];
+    let mut buf = vec![0_u8; DEFAULT_BUFFER_SIZE_FOR_NETWORK];
+    let mut file = File::open(path)
+        .await
+        .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
+
+    loop {
+        let len = file
+            .read_buf(&mut buf)
+            .await
+            .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
+
+        if len == 0 {
+            break;
+        }
+
+        fast_rsync::Signature::calculate(&buf[..], &mut storage, SIGNATURE_OPTIONS);
+        udt_connection
+            .send(&storage)
+            .await
+            .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
+
+        trace!("done send one block file. len: {len}");
+    }
+
+    udt_connection
+        .send(STOP_WORD)
+        .await
+        .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
+    Ok(())
 }

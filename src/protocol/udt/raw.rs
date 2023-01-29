@@ -1,6 +1,6 @@
 //! Raw [udt](https://en.wikipedia.org/wiki/UDP-based_Data_Transfer_Protocol) implementation
 
-use super::UdtError;
+use super::prelude::UdtError;
 use crate::{
     common::{
         get_hasher, timeout, DEFAULT_BUFFER_SIZE_FOR_FILE as FBUFFER_SIZE,
@@ -43,16 +43,16 @@ where
         .map_err(|e| UdtError::Protocol(ProtocolError::Handshake(e)))?;
     let file = File::open(path)
         .await
-        .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
+        .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
     let mut reader = BufReader::new(file);
     let mut done_bytes = 0;
 
-    let mut buf = vec![0u8; FBUFFER_SIZE];
+    let mut buf = vec![0_u8; FBUFFER_SIZE];
     loop {
         let len = reader
             .read(&mut buf)
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
+            .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
 
         if len == 0 {
             break;
@@ -61,7 +61,7 @@ where
         timeout!(udt_connection.send(&buf[0..len]), |_| {
             UdtError::Protocol(ProtocolError::TimeoutExpired)
         })?
-        .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
+        .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
 
         done_bytes += len;
         run_progress_fn(
@@ -107,10 +107,10 @@ where
             .create(true)
             .open(path)
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?,
+            .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?,
     );
 
-    let mut buf = vec![0u8; NBUFFER_SIZE];
+    let mut buf = vec![0_u8; NBUFFER_SIZE];
     let mut total_bytes_for_send = handshake.size;
     let mut done_bytes = 0;
 
@@ -122,7 +122,7 @@ where
 
         file.write_all(&buf[0..len])
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
+            .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
 
         total_bytes_for_send -= len as u64;
         done_bytes += len;
@@ -142,13 +142,13 @@ where
     }
     file.flush()
         .await
-        .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
+        .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
 
     // Check file
     debug!("raw_recv_file. Checking file");
     let mut hasher = get_hasher();
     let hash = file_hashing::get_hash_file(path, &mut hasher)
-        .map_err(|e| UdtError::Protocol(ProtocolError::FileIO(e)))?;
+        .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
 
     if hash != handshake.hash {
         debug!(

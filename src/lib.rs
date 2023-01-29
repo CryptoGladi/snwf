@@ -60,6 +60,21 @@
 
 #![forbid(unsafe_code)]
 #![warn(unused_lifetimes)]
+#![warn(clippy::disallowed_types)]
+#![warn(clippy::unused_async)]
+#![warn(clippy::unwrap_used)]
+#![warn(clippy::use_self)]
+#![warn(clippy::unseparated_literal_suffix)]
+#![warn(clippy::unreadable_literal)]
+#![warn(clippy::unreachable)]
+#![warn(clippy::unimplemented)]
+#![warn(clippy::unnested_or_patterns)]
+#![warn(clippy::unneeded_field_pattern)]
+#![warn(clippy::too_many_lines)]
+#![warn(clippy::todo)]
+#![warn(clippy::missing_const_for_fn)]
+#![warn(clippy::macro_use_imports)]
+#![deny(clippy::inline_always)]
 
 pub mod common;
 pub mod core;

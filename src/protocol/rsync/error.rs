@@ -20,7 +20,7 @@ macro_rules! assert_rsync {
     ($for_check:expr, $($message_error:tt)*) => {
         if $for_check == false {
             log::error!("assert rsync! message_error: {}", format!($($message_error)*));
-            return Err(crate::protocol::rsync::RSyncError::Assert(format!($($message_error)*)));
+            return Err(crate::protocol::rsync::error::RSyncError::Assert(format!($($message_error)*)));
         }
     };
 }

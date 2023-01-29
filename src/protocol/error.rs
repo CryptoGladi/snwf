@@ -35,7 +35,7 @@ pub enum ProtocolError {
     ///
     /// For example: `You do not have permission to write to the file`
     #[error("IO filesystem")]
-    FileIO(#[source] std::io::Error),
+    IO(#[source] std::io::Error),
 
     /// This error occurs if we cannot receive something from the socket
     ///

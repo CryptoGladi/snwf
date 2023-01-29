@@ -23,7 +23,7 @@ macro_rules! assert_udt {
     ($for_check:expr, $($message_error:tt)*) => {
         if $for_check == false {
             log::error!("assert udt! message_error: {}", format!($($message_error)*));
-            return Err(crate::protocol::udt::UdtError::Assert(format!($($message_error)*)));
+            return Err(crate::protocol::udt::error::UdtError::Assert(format!($($message_error)*)));
         }
     };
 }

@@ -1,4 +1,4 @@
-use super::{assert_rsync, RSyncError};
+use super::prelude::*;
 use crate::prelude::{CoreSender, Sender};
 use async_trait::async_trait;
 use std::path::Path;
@@ -19,8 +19,6 @@ impl<'a> RSyncSender<'a> for Sender<'a> {
         assert_rsync!(path.as_ref().is_file(), "path isn't file or not exists");
 
         let config = self.get_config();
-
-        
 
         Ok(())
     }
