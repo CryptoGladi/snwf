@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 color-eyre = "0.6.2"
+project-root = "0.2.2"
 snwf = { path = "../" }
 thiserror = "1.0.38"
-tokio = { version = "1.23.0", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 
 [profile.release]
 opt-level = 3

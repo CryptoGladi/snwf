@@ -47,7 +47,7 @@ where
     let mut reader = BufReader::new(file);
     let mut done_bytes = 0;
 
-    let mut buf = vec![0_u8; FBUFFER_SIZE];
+    let mut buf = vec![0u8; FBUFFER_SIZE];
     loop {
         let len = reader
             .read(&mut buf)
@@ -110,7 +110,7 @@ where
             .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?,
     );
 
-    let mut buf = vec![0_u8; NBUFFER_SIZE];
+    let mut buf = vec![0u8; NBUFFER_SIZE];
     let mut total_bytes_for_send = handshake.size;
     let mut done_bytes = 0;
 

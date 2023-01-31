@@ -64,7 +64,6 @@
 #![warn(clippy::unused_async)]
 #![warn(clippy::unwrap_used)]
 #![warn(clippy::use_self)]
-#![warn(clippy::unseparated_literal_suffix)]
 #![warn(clippy::unreadable_literal)]
 #![warn(clippy::unreachable)]
 #![warn(clippy::unimplemented)]

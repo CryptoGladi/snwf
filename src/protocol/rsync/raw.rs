@@ -30,8 +30,8 @@ pub(crate) async fn send_signature(
     path: impl AsRef<Path>,
     udt_connection: &UdtConnection,
 ) -> Result<(), RSyncError> {
-    let mut storage = vec![0_u8; DEFAULT_BUFFER_SIZE_FOR_NETWORK];
-    let mut buf = vec![0_u8; DEFAULT_BUFFER_SIZE_FOR_NETWORK];
+    let mut storage = vec![0u8; DEFAULT_BUFFER_SIZE_FOR_NETWORK];
+    let mut buf = vec![0u8; DEFAULT_BUFFER_SIZE_FOR_NETWORK];
     let mut file = File::open(path)
         .await
         .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
