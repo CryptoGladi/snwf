@@ -75,6 +75,8 @@
 #![warn(clippy::macro_use_imports)]
 #![warn(clippy::inline_always)]
 #![warn(clippy::cast_possible_truncation)]
+#![warn(clippy::cargo_common_metadata)]
+#![warn(missing_docs)]
 
 pub mod common;
 pub mod core;

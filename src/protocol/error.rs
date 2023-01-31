@@ -1,6 +1,9 @@
+//! Errors for any protocol
+
 use super::handshake::HandshakeError;
 use thiserror::Error;
 
+/// All error options that can be in any protocol
 #[derive(Debug, Error)]
 pub enum ProtocolError {
     /// An error occurred while enabling the server socket (TcpListener)

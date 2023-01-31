@@ -1,6 +1,12 @@
 [package]
 name = "snwf"
+description = "This library allows you to easily transfer and synchronize files over the network"
 version = "0.1.0"
+repository = "https://github.com/CryptoGladi/snwf"
+readme = "README.md"
+license = "MIT"
+keywords = ["async", "network", "tokio", "file"]
+categories = ["filesystem", "network-programming"]
 edition = "2021"
 
 [features]
@@ -27,4 +33,7 @@ tokio = { version = "1", features = [ "full" ] }
 file-hashing = "0.1"
 
 [profile.dev]
-debug = 2
+debug = 1
+
+[profile.release]
+opt-level = 2

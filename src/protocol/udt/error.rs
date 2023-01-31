@@ -6,6 +6,15 @@ use thiserror::Error;
 /// Enum error
 #[derive(Debug, Error)]
 pub enum UdtError {
+    /// Set of standard errors for any protocol
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use snwf::prelude::{*, ProtocolError::*};
+    ///
+    /// let i = UdtError::Protocol(TimeoutExpired);
+    /// ```
     #[error("problem in protocol: {0}")]
     Protocol(ProtocolError),
 

@@ -140,15 +140,13 @@ where
             break;
         }
     }
-    file.flush()
-        .await
-        .map_err(|e| UdtError::Protocol(IO(e)))?;
+    file.flush().await.map_err(|e| UdtError::Protocol(IO(e)))?;
 
     // Check file
     debug!("raw_recv_file. Checking file");
     let mut hasher = get_hasher();
-    let hash = file_hashing::get_hash_file(path, &mut hasher)
-        .map_err(|e| UdtError::Protocol(IO(e)))?;
+    let hash =
+        file_hashing::get_hash_file(path, &mut hasher).map_err(|e| UdtError::Protocol(IO(e)))?;
 
     if hash != handshake.hash {
         debug!(

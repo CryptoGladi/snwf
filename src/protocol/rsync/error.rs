@@ -1,8 +1,18 @@
 use crate::protocol::error::ProtocolError;
 use thiserror::Error;
 
+/// Enum error
 #[derive(Debug, Error)]
 pub enum RSyncError {
+    /// Set of standard errors for any protocol
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use snwf::prelude::{*, ProtocolError::*};
+    ///
+    /// let i = RSyncError::Protocol(TimeoutExpired);
+    /// ```
     #[error("problem in protocol: {0}")]
     Protocol(ProtocolError),
 

@@ -1,3 +1,7 @@
+//! Core traits
+//!
+//! Used for easy interaction
+
 use super::Progressing;
 use std::{net::IpAddr, time::Duration};
 

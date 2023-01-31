@@ -1,3 +1,5 @@
+//! Implementation progressing/callback function
+
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex},

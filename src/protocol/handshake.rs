@@ -28,17 +28,23 @@ pub(crate) struct Handshake {
     pub(crate) file_name: String,
 }
 
+/// Enum error for [`Handshake`]
 #[derive(Debug, Error)]
 pub enum HandshakeError {
+    /// The error was due to incorrect use of
+    /// [serde-json](https://docs.rs/serde_json/latest/serde_json/struct.Error.html)
     #[error("serialize or deserialize error")]
     SerdeJson(#[from] serde_json::Error),
 
+    /// Error in [`std::io::Error`]
     #[error("IO/socket error")]
     IO(#[from] std::io::Error),
 
+    ///
     #[error("timeout expired")]
     TimeoutExpired,
 
+    /// Wrong use [`send_handshake_from_file`] or [`recv_handshake_from_address`]
     #[error("wrong use function: {0}")]
     Assert(String),
 }
