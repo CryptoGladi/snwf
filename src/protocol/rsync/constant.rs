@@ -1,6 +1,7 @@
 use crate::common::DEFAULT_BUFFER_SIZE_FOR_NETWORK;
 use fast_rsync::SignatureOptions;
 
+#[allow(clippy::cast_possible_truncation)]
 pub(crate) const DEFAULT_BLOCK_SIZE: u32 = DEFAULT_BUFFER_SIZE_FOR_NETWORK as u32;
 
 pub(crate) const DEFAULT_CRYPTO_HASH_SIZE: u32 = 256;

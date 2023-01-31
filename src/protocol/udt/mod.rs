@@ -53,7 +53,7 @@ mod tests {
 
     #[tokio::test]
     async fn send_and_recv_udt_with_progress_fn() {
-        crate::init_logger_for_test();
+        crate::common::init_logger_for_test();
 
         let run_progressing_sender_yield = Arc::new(Mutex::new(false));
         let run_progressing_sender_done = Arc::new(Mutex::new(false));
@@ -132,7 +132,7 @@ mod tests {
 
     #[tokio::test]
     async fn send_and_recv_udt_with_original_name() {
-        crate::init_logger_for_test();
+        crate::common::init_logger_for_test();
 
         let (_temp_dir, path_input) = file_hashing::fs::extra::generate_random_file(4352);
         let (output_dir, _path_input) = file_hashing::fs::extra::generate_random_file(1);

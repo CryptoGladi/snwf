@@ -1,7 +1,7 @@
 use super::prelude::*;
 use crate::{
     common::DEFAULT_BUFFER_SIZE_FOR_NETWORK,
-    prelude::{ConfigRecipient, ProtocolError},
+    prelude::{ConfigRecipient, ProtocolError::*},
 };
 use log::{debug, trace};
 use std::path::Path;
@@ -15,12 +15,12 @@ pub(crate) async fn bind_all(
 
     let udt_listener = UdtListener::bind((config.addr, config.port_for_handshake).into(), None)
         .await
-        .map_err(|e| RSyncError::Protocol(ProtocolError::Bind(e)))?;
+        .map_err(|e| RSyncError::Protocol(Bind(e)))?;
     debug!("done bind udt_listener");
 
     let tcp_listener = TcpListener::bind((config.addr, config.port_for_handshake))
         .await
-        .map_err(|e| RSyncError::Protocol(ProtocolError::Bind(e)))?;
+        .map_err(|e| RSyncError::Protocol(Bind(e)))?;
     debug!("done bind tcp_listener");
 
     Ok((udt_listener, tcp_listener))
@@ -34,13 +34,13 @@ pub(crate) async fn send_signature(
     let mut buf = vec![0u8; DEFAULT_BUFFER_SIZE_FOR_NETWORK];
     let mut file = File::open(path)
         .await
-        .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
+        .map_err(|e| RSyncError::Protocol(IO(e)))?;
 
     loop {
         let len = file
             .read_buf(&mut buf)
             .await
-            .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
+            .map_err(|e| RSyncError::Protocol(IO(e)))?;
 
         if len == 0 {
             break;
@@ -50,7 +50,7 @@ pub(crate) async fn send_signature(
         udt_connection
             .send(&storage)
             .await
-            .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
+            .map_err(|e| RSyncError::Protocol(IO(e)))?;
 
         trace!("done send one block file. len: {len}");
     }
@@ -58,6 +58,6 @@ pub(crate) async fn send_signature(
     udt_connection
         .send(STOP_WORD)
         .await
-        .map_err(|e| RSyncError::Protocol(ProtocolError::IO(e)))?;
+        .map_err(|e| RSyncError::Protocol(IO(e)))?;
     Ok(())
 }

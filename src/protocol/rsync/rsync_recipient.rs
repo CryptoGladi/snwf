@@ -1,6 +1,6 @@
 use super::prelude::*;
 use crate::prelude::{CoreRecipient, Recipient};
-use crate::protocol::error::ProtocolError;
+use crate::protocol::error::ProtocolError::*;
 use crate::protocol::handshake::recv_handshake_from_address;
 use crate::protocol::rsync::raw;
 use async_trait::async_trait;
@@ -33,12 +33,12 @@ impl<'a> RSyncRecipient<'a> for Recipient<'a> {
 
         recv_handshake_from_address(&mut tcp_listener)
             .await
-            .map_err(|e| RSyncError::Protocol(ProtocolError::Handshake(e)))?;
+            .map_err(|e| RSyncError::Protocol(Handshake(e)))?;
 
         let (addr, udt_connection) = udt_listener
             .accept()
             .await
-            .map_err(|e| RSyncError::Protocol(ProtocolError::Accept(e)))?;
+            .map_err(|e| RSyncError::Protocol(Accept(e)))?;
         debug!("new accept! addr: {addr}");
 
         raw::send_signature(path, &udt_connection).await?;

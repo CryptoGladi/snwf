@@ -141,7 +141,7 @@ mod tests {
 
     #[tokio::test]
     async fn send_and_recv_handshake() {
-        crate::init_logger_for_test();
+        crate::common::init_logger_for_test();
 
         let (_temp_dir, path_to_file) = file_hashing::fs::extra::generate_random_file(1000);
         let mut hasher = blake2::Blake2b512::new();
@@ -171,6 +171,8 @@ mod tests {
 
     #[test]
     fn macro_assert_handshake() {
+        crate::common::init_logger_for_test();
+
         let fn_test = || -> Result<(), HandshakeError> {
             assert_handshake!(false, "test message: {}", "test value");
             Ok(())

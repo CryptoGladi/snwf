@@ -9,7 +9,7 @@ use crate::{
     core::*,
     prelude::{ConfigRecipient, ConfigSender},
     protocol::{
-        error::ProtocolError,
+        error::ProtocolError::*,
         handshake::{recv_handshake_from_address, send_handshake_from_file, Handshake},
     },
 };
@@ -40,10 +40,10 @@ where
 {
     let handshake = send_handshake_from_file(path, handshake_socket)
         .await
-        .map_err(|e| UdtError::Protocol(ProtocolError::Handshake(e)))?;
+        .map_err(|e| UdtError::Protocol(Handshake(e)))?;
     let file = File::open(path)
         .await
-        .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
+        .map_err(|e| UdtError::Protocol(IO(e)))?;
     let mut reader = BufReader::new(file);
     let mut done_bytes = 0;
 
@@ -52,16 +52,16 @@ where
         let len = reader
             .read(&mut buf)
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
+            .map_err(|e| UdtError::Protocol(IO(e)))?;
 
         if len == 0 {
             break;
         }
 
         timeout!(udt_connection.send(&buf[0..len]), |_| {
-            UdtError::Protocol(ProtocolError::TimeoutExpired)
+            UdtError::Protocol(TimeoutExpired)
         })?
-        .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
+        .map_err(|e| UdtError::Protocol(IO(e)))?;
 
         done_bytes += len;
         run_progress_fn(
@@ -98,7 +98,7 @@ where
     } else {
         recv_handshake_from_address(socket)
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::Handshake(e)))?
+            .map_err(|e| UdtError::Protocol(Handshake(e)))?
     };
 
     let mut file = BufWriter::new(
@@ -107,7 +107,7 @@ where
             .create(true)
             .open(path)
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?,
+            .map_err(|e| UdtError::Protocol(IO(e)))?,
     );
 
     let mut buf = vec![0u8; NBUFFER_SIZE];
@@ -118,11 +118,11 @@ where
         let len = udt
             .recv(&mut buf)
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::ReceivingData(e)))?;
+            .map_err(|e| UdtError::Protocol(ReceivingData(e)))?;
 
         file.write_all(&buf[0..len])
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
+            .map_err(|e| UdtError::Protocol(IO(e)))?;
 
         total_bytes_for_send -= len as u64;
         done_bytes += len;
@@ -142,20 +142,20 @@ where
     }
     file.flush()
         .await
-        .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
+        .map_err(|e| UdtError::Protocol(IO(e)))?;
 
     // Check file
     debug!("raw_recv_file. Checking file");
     let mut hasher = get_hasher();
     let hash = file_hashing::get_hash_file(path, &mut hasher)
-        .map_err(|e| UdtError::Protocol(ProtocolError::IO(e)))?;
+        .map_err(|e| UdtError::Protocol(IO(e)))?;
 
     if hash != handshake.hash {
         debug!(
             "hash not valid! hash: {}; handshake.file_hash: {}",
             hash, handshake.hash
         );
-        return Err(UdtError::Protocol(ProtocolError::FileInvalid));
+        return Err(UdtError::Protocol(FileInvalid));
     }
 
     run_progress_fn(config, Progressing::Done);
@@ -180,10 +180,10 @@ mod tests {
         ) -> Result<(), UdtError> {
             let mut udt = UdtConnection::connect(address_for_udt, None)
                 .await
-                .map_err(|e| UdtError::Protocol(ProtocolError::Connect(e)))?;
+                .map_err(|e| UdtError::Protocol(Connect(e)))?;
             let mut tcp = TcpStream::connect(address_for_tcp)
                 .await
-                .map_err(|e| UdtError::Protocol(ProtocolError::Connect(e)))?;
+                .map_err(|e| UdtError::Protocol(Connect(e)))?;
             debug!("Done all connect");
 
             debug!("Running raw_send_file...");
@@ -200,16 +200,16 @@ mod tests {
         ) -> Result<(), UdtError> {
             let udt_listener = UdtListener::bind(address_for_udt, None)
                 .await
-                .map_err(|e| UdtError::Protocol(ProtocolError::Bind(e)))?;
+                .map_err(|e| UdtError::Protocol(Bind(e)))?;
             let mut tcp_listener = TcpListener::bind(address_for_tcp)
                 .await
-                .map_err(|e| UdtError::Protocol(ProtocolError::Bind(e)))?;
+                .map_err(|e| UdtError::Protocol(Bind(e)))?;
             debug!("Done all bind!");
 
             let (_addr, mut udt_connection) = udt_listener
                 .accept()
                 .await
-                .map_err(|e| UdtError::Protocol(ProtocolError::Accept(e)))?;
+                .map_err(|e| UdtError::Protocol(Accept(e)))?;
             debug!("Accept client: {}", _addr);
 
             debug!("Running raw_recv_file...");
@@ -230,7 +230,7 @@ mod tests {
 
     #[tokio::test]
     async fn udt_raw() {
-        crate::init_logger_for_test();
+        crate::common::init_logger_for_test();
 
         const ADDRESS_UDT: &str = "127.0.0.1:6432";
         const ADDRESS_TCP: &str = "127.0.0.1:6424";

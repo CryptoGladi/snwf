@@ -20,6 +20,6 @@ impl<'a> RSyncSender<'a> for Sender<'a> {
 
         let config = self.get_config();
 
-        Ok(())
+        todo!()
     }
 }

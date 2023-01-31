@@ -5,7 +5,7 @@ use crate::{
     common::timeout,
     prelude::*,
     protocol::{
-        error::ProtocolError,
+        error::ProtocolError::*,
         handshake::recv_handshake_from_address,
         udt::{detail, error::assert_udt, raw},
     },
@@ -86,10 +86,10 @@ impl<'a> UdtRecipient<'a> for Recipient<'a> {
 
         let (addr, mut connection) = timeout!(
             udt_listener.accept(),
-            |_| UdtError::Protocol(ProtocolError::TimeoutExpired),
+            |_| UdtError::Protocol(TimeoutExpired),
             config.timeout
         )?
-        .map_err(|e| UdtError::Protocol(ProtocolError::Accept(e)))?;
+        .map_err(|e| UdtError::Protocol(Accept(e)))?;
         debug!("accepted connection from {}", addr);
 
         raw::recv_file(
@@ -118,15 +118,15 @@ impl<'a> UdtRecipient<'a> for Recipient<'a> {
 
         let (addr, mut connection) = timeout!(
             udt_listener.accept(),
-            |_| UdtError::Protocol(ProtocolError::TimeoutExpired),
+            |_| UdtError::Protocol(TimeoutExpired),
             config.timeout
         )?
-        .map_err(|e| UdtError::Protocol(ProtocolError::Accept(e)))?;
+        .map_err(|e| UdtError::Protocol(Accept(e)))?;
         debug!("accepted connection from {}", addr);
 
         let handshake = recv_handshake_from_address(&mut tcp_handshake)
             .await
-            .map_err(|e| UdtError::Protocol(ProtocolError::Handshake(e)))?;
+            .map_err(|e| UdtError::Protocol(Handshake(e)))?;
 
         raw::recv_file(
             &mut connection,
