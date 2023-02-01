@@ -23,7 +23,7 @@ use tokio::{
 /// Info about file
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct Handshake {
-    pub(crate) hash: String,
+    pub(crate) checksum: String,
     pub(crate) size: u64,
     pub(crate) file_name: String,
 }
@@ -88,7 +88,7 @@ where
     let hash = file_hashing::get_hash_file(path, &mut hasher)?;
     let metadata = metadata(path).await?;
     let handshake = Handshake {
-        hash,
+        checksum: hash,
         size: metadata.len(),
         file_name: get_file_name_from_as_ref_path(path),
     };
@@ -168,7 +168,7 @@ mod tests {
         assert_eq!(
             handshake,
             Handshake {
-                hash: hash_from_test_file,
+                checksum: hash_from_test_file,
                 size: 1000,
                 file_name: get_file_name_from_as_ref_path(path_to_file)
             }

@@ -1,5 +1,8 @@
 use super::prelude::*;
-use crate::prelude::{CoreSender, Sender};
+use crate::{
+    prelude::{CoreSender, Sender},
+    protocol::{handshake::send_handshake_from_file, rsync::raw},
+};
 use async_trait::async_trait;
 use log::debug;
 use std::path::Path;
@@ -26,6 +29,11 @@ impl<'a> RSyncSender<'a> for Sender<'a> {
             path.as_ref()
         );
 
-        todo!()
+        let (udt_connection, tcp_connection) = raw::connect_all(&config).await?;
+        send_handshake_from_file(path, &mut tcp_connection);
+
+        let signature = raw::get_big_message(&mut udt_connection);
+
+        Ok(())
     }
 }

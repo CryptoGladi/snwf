@@ -148,10 +148,10 @@ where
     let hash =
         file_hashing::get_hash_file(path, &mut hasher).map_err(|e| UdtError::Protocol(IO(e)))?;
 
-    if hash != handshake.hash {
+    if hash != handshake.checksum {
         debug!(
             "hash not valid! hash: {}; handshake.file_hash: {}",
-            hash, handshake.hash
+            hash, handshake.checksum
         );
         return Err(UdtError::Protocol(FileInvalid));
     }
