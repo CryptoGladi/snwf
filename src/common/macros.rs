@@ -113,3 +113,18 @@ macro_rules! generate_new_for_config {
 }
 
 pub(crate) use generate_new_for_config;
+
+/// Detect buffer overflow for const
+macro_rules! const_detect_buffer_overflow {
+    ($number_for_check:ident, $return_type:ident) => {{
+        let number_for_check = $number_for_check as $return_type;
+
+        if number_for_check.checked_add(1).is_none() {
+            panic!("buffer overflow detected!");
+        }
+
+        $number_for_check as $return_type
+    }};
+}
+
+pub(crate) use const_detect_buffer_overflow;

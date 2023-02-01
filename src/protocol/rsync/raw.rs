@@ -26,6 +26,12 @@ pub(crate) async fn bind_all(
     Ok((udt_listener, tcp_listener))
 }
 
+pub(crate) async fn connect_all(
+    config: &'_ ConfigRecipient<'_>,
+) -> Result<(UdtListener, TcpListener), RSyncError> {
+    todo!()
+}
+
 pub(crate) async fn send_signature(
     path: impl AsRef<Path>,
     udt_connection: &UdtConnection,

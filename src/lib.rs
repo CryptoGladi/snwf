@@ -59,6 +59,7 @@
 //! snwf by [CryptoGladi](https://github.com/CryptoGladi)
 
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 #![warn(unused_lifetimes)]
 #![warn(clippy::disallowed_types)]
 #![warn(clippy::unused_async)]
@@ -76,7 +77,6 @@
 #![warn(clippy::inline_always)]
 #![warn(clippy::cast_possible_truncation)]
 #![warn(clippy::cargo_common_metadata)]
-#![warn(missing_docs)]
 
 pub mod common;
 pub mod core;

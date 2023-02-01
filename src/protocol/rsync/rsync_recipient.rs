@@ -24,7 +24,7 @@ impl<'a> RSyncRecipient<'a> for Recipient<'a> {
 
         let config = self.get_config();
         debug!(
-            "run rsync_sync_file for Sender! config: {:?}, path: {:?}",
+            "run rsync_sync_file for Recipient! config: {:?}, path: {:?}",
             config,
             path.as_ref()
         );
