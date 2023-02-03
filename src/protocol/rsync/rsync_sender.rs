@@ -1,4 +1,5 @@
 use super::prelude::*;
+use crate::protocol::error::ProtocolError::*;
 use crate::{
     prelude::{CoreSender, Sender},
     protocol::{handshake::send_handshake_from_file, rsync::raw},
@@ -29,8 +30,10 @@ impl<'a> RSyncSender<'a> for Sender<'a> {
             path.as_ref()
         );
 
-        let (udt_connection, tcp_connection) = raw::connect_all(&config).await?;
-        send_handshake_from_file(path, &mut tcp_connection);
+        let (mut udt_connection, mut tcp_connection) = raw::connect_all(&config).await?;
+        send_handshake_from_file(path, &mut tcp_connection)
+            .await
+            .map_err(|e| RSyncError::Protocol(Handshake(e)))?;
 
         let signature = raw::get_big_message(&mut udt_connection);
 

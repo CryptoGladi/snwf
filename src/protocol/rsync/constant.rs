@@ -14,4 +14,4 @@ pub(crate) const SIGNATURE_OPTIONS: SignatureOptions = SignatureOptions {
 /// Symbol for end-of-transmission
 ///
 /// It is [EOT](https://en.wikipedia.org/wiki/End-of-Transmission_character). [Value](http://www.csc.villanova.edu/~tway/resources/ascii-table.html)
-pub(crate) const STOP_WORD: &[u8] = &[0x04];
+pub(crate) const STOP_WORD: u8 = 0x04;

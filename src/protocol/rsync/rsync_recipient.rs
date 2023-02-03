@@ -29,7 +29,7 @@ impl<'a> RSyncRecipient<'a> for Recipient<'a> {
             path.as_ref()
         );
 
-        let (udt_listener, tcp_listener) = raw::bind_all(&config).await?;
+        let (udt_listener, mut tcp_listener) = raw::bind_all(&config).await?;
 
         recv_handshake_from_address(&mut tcp_listener)
             .await

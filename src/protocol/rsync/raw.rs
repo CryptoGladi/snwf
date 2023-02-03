@@ -74,7 +74,7 @@ pub(crate) async fn send_signature(
     }
 
     udt_connection
-        .send(STOP_WORD)
+        .send(&[STOP_WORD])
         .await
         .map_err(|e| RSyncError::Protocol(IO(e)))?;
     Ok(())
@@ -85,18 +85,20 @@ pub(crate) async fn get_big_message(udt_connection: &UdtConnection) -> Result<Ve
     let mut result = vec![0u8; DEFAULT_BUFFER_SIZE_FOR_NETWORK];
 
     loop {
-        let len = udt_connection.recv(&mut buf).await.map_err(|e| RSyncError::Protocol(IO(e)))?;
+        let len = udt_connection
+            .recv(&mut buf)
+            .await
+            .map_err(|e| RSyncError::Protocol(IO(e)))?;
 
         if len == 0 || buf[len] == STOP_WORD {
             break;
         }
 
-        result.append(&mut buf[0..len]);
+        result.append(&mut buf[0..len].to_vec());
     }
 
-
-    /// TODO WRONG
-    Ok((result))
+    // TODO WRONG
+    Ok(result)
 }
 
 // TODO Add timeout
