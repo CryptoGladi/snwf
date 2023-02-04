@@ -2,7 +2,7 @@
 
 > Library for simple network work on files
 
-[![codacy badge](https://img.shields.io/codacy/grade/187d6864d2684ec7bae17e2ad1277f67?style=for-the-badge)](https://www.codacy.com/gh/CryptoGladi/snwf/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CryptoGladi/snwf&amp;utm_campaign=Badge_Grade) ![total lines](https://img.shields.io/tokei/lines/github/CryptoGladi/snwf?style=for-the-badge) ![repo size](https://img.shields.io/github/repo-size/CryptoGladi/snwf?style=for-the-badge) ![license](https://img.shields.io/github/license/CryptoGladi/snwf?style=for-the-badge)
+![license](https://img.shields.io/github/license/CryptoGladi/snwf?style=for-the-badge) ![buld](https://img.shields.io/github/actions/workflow/status/CryptoGladi/snwf/.github/workflows/rust.yml?branch=master&style=for-the-badge)
 
 # Motivation :rocket:
 
@@ -34,5 +34,3 @@ async fn main() {
    recv.unwrap();
 }
 ```
-
-TODO Add badges
