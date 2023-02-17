@@ -22,7 +22,7 @@ pub enum ProtocolError {
     ///
     /// Please, see [it](std::net::TcpListener::accept)
     ///
-    /// **Do not confuse with [`UdtError::TimeoutExpired`]!**
+    /// **Do not confuse with [`ProtocolError::TimeoutExpired`]!**
     #[error("accept socket")]
     Accept(#[source] std::io::Error),
 
@@ -30,7 +30,7 @@ pub enum ProtocolError {
     ///
     /// Please, see [it](std::net::TcpStream::connect)
     ///
-    /// **Do not confuse with [`UdtError::TimeoutExpired`]!**
+    /// **Do not confuse with [`ProtocolError::TimeoutExpired`]!**
     #[error("connection to socket")]
     Connect(#[source] std::io::Error),
 

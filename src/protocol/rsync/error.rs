@@ -1,3 +1,5 @@
+//! All error for [`rsync`](crate::protocol::rsync)
+
 use crate::protocol::error::ProtocolError;
 use thiserror::Error;
 

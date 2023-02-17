@@ -47,9 +47,9 @@
 //! * [`fast-rsync`](https://github.com/dropbox/fast_rsync) - an optimized implementation of
 //!   [librsync](https://github.com/librsync/librsync) in pure Rust
 
-pub mod constant;
 pub mod error;
 pub mod prelude;
 mod raw;
 pub mod rsync_recipient;
 pub mod rsync_sender;
+pub(crate) mod constant;

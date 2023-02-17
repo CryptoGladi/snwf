@@ -1,3 +1,5 @@
+//! Useful constant
+
 use crate::common::{const_detect_buffer_overflow, DEFAULT_BUFFER_SIZE_FOR_NETWORK};
 use fast_rsync::SignatureOptions;
 

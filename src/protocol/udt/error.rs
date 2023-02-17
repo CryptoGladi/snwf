@@ -1,4 +1,4 @@
-//! All error in [`udt`](crate::protocol::udt)
+//! All error for [`udt`](crate::protocol::udt)
 
 use crate::protocol::error::ProtocolError;
 use thiserror::Error;

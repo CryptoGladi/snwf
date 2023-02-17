@@ -35,7 +35,7 @@ impl<'a> RSyncSender<'a> for Sender<'a> {
             .await
             .map_err(|e| RSyncError::Protocol(Handshake(e)))?;
 
-        let signature = raw::get_big_message(&mut udt_connection);
+        let signature = raw::get_big_message(&udt_connection);
 
         Ok(())
     }

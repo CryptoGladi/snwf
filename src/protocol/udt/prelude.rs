@@ -1,4 +1,4 @@
-//! Prelude for [`udt`]
+//! Prelude for [`udt`](crate::protocol::udt)
 
 use super::*;
 

@@ -1,3 +1,5 @@
+//! Prelude for [`rsync`](crate::protocol::rsync)
+
 use super::*;
 
 pub(crate) use constant::*;
