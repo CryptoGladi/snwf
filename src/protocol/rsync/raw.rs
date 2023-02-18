@@ -2,6 +2,7 @@ use super::prelude::*;
 use crate::{
     common::DEFAULT_BUFFER_SIZE_FOR_NETWORK,
     prelude::{ConfigRecipient, ConfigSender, ProtocolError::*},
+    protocol::udt::contains::UDT_CONFIGURATION,
 };
 use log::{debug, trace};
 use std::path::Path;
@@ -17,9 +18,12 @@ pub(crate) async fn bind_all(
 ) -> Result<(UdtListener, TcpListener), RSyncError> {
     debug!("run bind_all for rsync");
 
-    let udt_listener = UdtListener::bind((config.addr, config.port_for_send_files).into(), None)
-        .await
-        .map_err(|e| RSyncError::Protocol(Bind(e)))?;
+    let udt_listener = UdtListener::bind(
+        (config.addr, config.port_for_send_files).into(),
+        UDT_CONFIGURATION,
+    )
+    .await
+    .map_err(|e| RSyncError::Protocol(Bind(e)))?;
     debug!("done bind udt_listener");
 
     let tcp_listener = TcpListener::bind((config.addr, config.port_for_handshake))
@@ -33,9 +37,10 @@ pub(crate) async fn bind_all(
 pub(crate) async fn connect_all(
     config: &'_ ConfigSender<'_>,
 ) -> Result<(UdtConnection, TcpStream), RSyncError> {
-    let udt_connection = UdtConnection::connect((config.addr, config.port_for_send_files), None)
-        .await
-        .map_err(|e| RSyncError::Protocol(Connect(e)))?;
+    let udt_connection =
+        UdtConnection::connect((config.addr, config.port_for_send_files), UDT_CONFIGURATION)
+            .await
+            .map_err(|e| RSyncError::Protocol(Connect(e)))?;
 
     let tcp_connection = TcpStream::connect((config.addr, config.port_for_handshake))
         .await

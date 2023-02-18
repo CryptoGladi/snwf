@@ -37,11 +37,11 @@
 //!
 //! * [`tokio-udt`](https://github.com/Distributed-EPFL/tokio-udt) - implementation udt for [tokio](https://tokio.rs/)
 
+pub(crate) mod contains;
 mod detail;
 pub mod error;
 pub mod prelude;
 mod raw;
-
 pub mod udt_recipient;
 pub mod udt_sender;
 

@@ -167,6 +167,8 @@ mod tests {
     use tokio::net::ToSocketAddrs;
 
     pub(crate) mod detail {
+        use crate::protocol::udt::contains::UDT_CONFIGURATION;
+
         use super::*;
         use std::net::SocketAddr;
         use tokio_udt::UdtListener;
@@ -176,7 +178,7 @@ mod tests {
             address_for_tcp: impl ToSocketAddrs,
             path_to_file: &Path,
         ) -> Result<(), UdtError> {
-            let mut udt = UdtConnection::connect(address_for_udt, None)
+            let mut udt = UdtConnection::connect(address_for_udt, UDT_CONFIGURATION)
                 .await
                 .map_err(|e| UdtError::Protocol(Connect(e)))?;
             let mut tcp = TcpStream::connect(address_for_tcp)
@@ -196,7 +198,7 @@ mod tests {
             address_for_tcp: impl ToSocketAddrs,
             output: &Path,
         ) -> Result<(), UdtError> {
-            let udt_listener = UdtListener::bind(address_for_udt, None)
+            let udt_listener = UdtListener::bind(address_for_udt, UDT_CONFIGURATION)
                 .await
                 .map_err(|e| UdtError::Protocol(Bind(e)))?;
             let mut tcp_listener = TcpListener::bind(address_for_tcp)

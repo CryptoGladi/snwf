@@ -30,7 +30,7 @@ impl<'a> RSyncSender<'a> for Sender<'a> {
             path.as_ref()
         );
 
-        let (mut udt_connection, mut tcp_connection) = raw::connect_all(&config).await?;
+        let (udt_connection, mut tcp_connection) = raw::connect_all(&config).await?;
         send_handshake_from_file(path, &mut tcp_connection)
             .await
             .map_err(|e| RSyncError::Protocol(Handshake(e)))?;
